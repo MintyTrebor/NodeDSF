@@ -1,3 +1,5 @@
+*This project has not been released.
+
 # NodeDSF
 NodeDSF is a set of custom Nodes for Node-red to interface with Duet Software Framework on SBC, plus an optional DWC Plugin which allows you to embedd your custom GUI's within the Duet web interface
 
