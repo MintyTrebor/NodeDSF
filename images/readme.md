@@ -1,1 +1,1 @@
-hi
+Imagaes used throught the documentation
