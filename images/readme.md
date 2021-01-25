@@ -1,1 +1,1 @@
-Imagaes used throught the documentation
+Imagas used throught the documentation
