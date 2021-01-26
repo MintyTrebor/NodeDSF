@@ -20,7 +20,7 @@
 		opacity: 1;
 		top: 0;
 		right: 0;
-		width: 40%;
+		width: 60%;
 		height: 50px;
 	}
 
@@ -75,18 +75,18 @@
 
 <template>
     <div id="primarycontainer" ref="primarycontainer" class="primary-container mt-2" v-resize="resize">
-        <div id="settings-container" class="settings-container" v-resize="resize">
-			<div id="urlContainer" class="url-container" v-resize="resize">
+        <div id="settings-container" class="settings-container">
+			<div id="urlContainer" class="url-container">
 				<label class="settings-label">NodeDSF URL: </label>
 				<input id="NodeDSF_URL" type="text" value="" class="settings-urlinput">
 				<v-btn @click="urlSave" id= "settings-urlsave" class="settings-button">Save</v-btn>
 				<v-btn @click="urlCancel" id= "settings-urlcancel" class="settings-button">Cancel</v-btn>
 			</div>
-			<div id="BtnContainer" class="btn-container" v-resize="resize">
-				<v-btn @click="showSettings" id= "settings-button" class="settings-button">Settings</v-btn>
+			<div id="BtnContainer" class="btn-container">
+				<v-btn @click="showSettings" id="settings-button" class="settings-button">Settings</v-btn>
 			</div>
 		</div>
-		<iframe class="NodeIFrame" id="NodeIFrame" ref="NodeIFrame" src ="" scrolling="no" frameborder="0" allowtransparency="true" width=auto height=auto></iframe>
+		<iframe class="NodeIFrame" id="NodeIFrame" ref="NodeIFrame" src ="#" scrolling="no" frameborder="0" allowtransparency="true" width=auto height=auto></iframe>
     </div>
 </template>
 
@@ -150,7 +150,7 @@ export default {
 			if (urlString) {
 				document.getElementById('NodeDSF_URL').value = JSON.parse(urlString);
 			} else {
-				document.getElementById('NodeDSF_URL').value = 'http://localhost:1880/NodeDSF';
+				document.getElementById('NodeDSF_URL').value = '#';
 			}
 		},
 		saveSettings() {
