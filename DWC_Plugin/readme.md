@@ -8,7 +8,7 @@ When you click NodeDSF a small settings button will be shown in the top right of
 
 Note: Typically the URL to access the node-red dashboard system will be http://[SBC_IP]:1880/ui.
 
-Important Reminder
+### Important Reminder  
 The NodeDSF plugin should only be used if node-red is installed on the same SBC as DSF.  
 
 ## Development Note:
