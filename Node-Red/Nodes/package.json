@@ -1,15 +1,17 @@
 {
     "name": "node-red-contrib-NodeDSF",
-    "node-red": {
-        "nodes": {
-            "lower-case": "NodeDSF.js"
-        }
-    },
+    "version": "0.0.1",
+    "description": "A node for working with DSF",
     "dependencies": {
-        "axios": "^0.21.1",
+		"axios": "^0.21.1",
         "deepmerge": "^4.2.2",
         "http": "^0.0.1-security",
         "jsonpath": "^1.1.0",
         "ws": "^7.4.2"
+	},
+	"node-red"     : {
+        "nodes": {
+            "NodeDSF": "NodeDSF.js"
+        }
     }
 }
