@@ -1,0 +1,136 @@
+<!doctype html>
+<!-- Note that adding an appcache really speeds things up after the first load
+    You need to amend the appcache file to meet your needs.
+    Don't forget to change the appcache file if you update ANY
+    of the files in it otherwise the old versions will ALWAYS be used.
+<html lang="en" manifest="./uibuilder.appcache">
+-->
+<html lang="en">
+<!--
+    This is the default, template html for uibuilder.
+    It is meant to demonstrate the use of VueJS & bootstrap-vue to dynamically
+    update the ui based on incoming/outgoing messages from/to the
+    Node-RED server.
+-->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+
+    <title>Node-RED UI Builder - VueJS + bootstrap-vue default template</title>
+    <meta name="description" content="Node-RED UI Builder - VueJS + bootstrap-vue default template">
+
+    <link rel="icon" href="./images/node-blue.ico">
+
+    <link type="text/css" rel="stylesheet" href="../uibuilder/vendor/bootstrap/dist/css/bootstrap.min.css" />
+    <link type="text/css" rel="stylesheet" href="../uibuilder/vendor/bootstrap-vue/dist/bootstrap-vue.css" />
+    <!-- Your own CSS -->
+    <link type="text/css" rel="stylesheet" href="./index.css" media="all">
+
+    <style>
+        body {
+          font-family: "Lato", sans-serif;
+        }
+        
+        .sidenav {
+          height: 100%;
+          width: 0;
+          position: fixed;
+          z-index: 1;
+          top: 0;
+          left: 0;
+          background-color: #111;
+          overflow-x: hidden;
+          transition: 0.5s;
+          padding-top: 60px;
+        }
+        
+        .sidenav a {
+          padding: 8px 8px 8px 32px;
+          text-decoration: none;
+          font-size: 20px;
+          color: #818181;
+          display: block;
+          transition: 0.3s;
+        }
+        
+        .sidenav a:hover {
+          color: #f1f1f1;
+        }
+        
+        .sidenav .closebtn {
+          position: absolute;
+          top: 0;
+          right: 25px;
+          font-size: 36px;
+          margin-left: 50px;
+        }
+        .burger {
+            background-color: var(--dark);
+            width: 100%;
+            height: 50px;
+        }
+        
+        @media screen and (max-height: 450px) {
+          .sidenav {padding-top: 15px;}
+          .sidenav a {font-size: 18px;}
+        }
+    </style>
+
+</head><body style="background-color: var(--dark);">
+
+    <div id="burger" class="burger">
+        <span style="font-size:25px;cursor:pointer;color: #818181;" onclick="openNav()">&#9776; NodeDSF Menu</span>
+    </div>
+    
+    <div id="mySidenav" class="sidenav">
+      <!-- add your new pages to the side menu here -->
+      <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+      <a href="#" onclick="chgPage('http://10.66.1.150:1880/NodeDSFHome/')">NodeDSF Home</a>
+      <a href="#" onclick="chgPage('http://10.66.1.150:1880/ui')">Simple Dash</a>
+      <a href="#" onclick="chgPage('http://10.66.1.150:1880/NodeDSFTimeLapse/')">Time-Lapse Settings</a>
+    </div> 
+    
+    <div style="background-color: var(--dark)">
+        <div style="background-color: var(--dark)">
+            <iframe id="NodeIF" ref="NodeIF" src="http://10.66.1.150:1880/NodeDSFHome/" scrolling="auto" frameborder="0" allowtransparency="true" style="background-color: #111;overflow:hidden;overflow-x:hidden;overflow-y:hidden;height:95%;width:100%;position:absolute;top:40px;left:0px;right:0px;bottom:0px;" height="95%" width="100%"></iframe>
+        </div>
+    </div>
+
+    <!-- Dont forget to use minified versions of libraries for production, non-min versions for development only -->
+    <!-- These MUST be in the right order. Note no leading / -->
+
+    <!-- REQUIRED: Socket.IO is loaded only once for all instances. Without this, you don't get a websocket connection -->
+    <script src="../uibuilder/vendor/socket.io/socket.io.js"></script>
+
+    <!-- Vendor Libraries - Load in the right order -->
+    <script src="../uibuilder/vendor/vue/dist/vue.js"></script> <!-- dev version with component compiler -->
+    <!-- <script src="../uibuilder/vendor/vue/dist/vue.min.js"></script>   prod version with component compiler -->
+    <!-- <script src="../uibuilder/vendor/vue/dist/vue.runtime.min.js"></script>   prod version without component compiler -->
+    <script src="../uibuilder/vendor/bootstrap-vue/dist/bootstrap-vue.js"></script>
+
+    <!-- REQUIRED: Sets up Socket listeners and the msg object -->
+    <script src="./uibuilderfe.js"></script> <!-- dev version -->
+    <!-- <script src="./uibuilderfe.min.js"></script>     //prod version -->
+
+    <!-- OPTIONAL: You probably want this. Put your custom code here -->
+    <script src="./index.js"></script>
+    
+    <script>
+        function closeNav() {
+          document.getElementById("mySidenav").style.width = "0";
+        }
+        function openNav() {
+          document.getElementById("mySidenav").style.width = "250px";
+        }
+        function chgPage(NodeDSFPath) {
+          document.getElementById("NodeIF").src = NodeDSFPath;
+          document.getElementById("NodeIF").style.width = "100%";
+          document.getElementById("NodeIF").style.height = "95%";
+          closeNav();
+        }
+    </script>
+    
+
+</body></html>
