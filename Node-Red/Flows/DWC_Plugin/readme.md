@@ -6,7 +6,7 @@ NodeDSF - This is the main page and also provides the sidebar menu. Edit this to
 
 NodeDSFHome - The NodeDSF basic HTML home page.
 
-Relies on the 3rd party uiBuilder node. Please review the instructions for this node [here](https://flows.nodered.org/node/node-red-contrib-uibuilder). It relies on the vuejs framework being added to uibuilder (see nodes help for instructions on how to add frameworks)
+Relies on the 3rd party uiBuilder node. Please review the instructions for this node [here](https://flows.nodered.org/node/node-red-contrib-uibuilder). It also requires the vuejs framework being added to uibuilder (see uibuilder's help for instructions on how to add frameworks)
 
 Once the flow is deployed in node-red, copy the uiBuilder code sets into the appropriate directory in your node-red folder and edit as required.  
 
