@@ -1,0 +1,179 @@
+[
+    {
+        "id": "156cc64d.b1239a",
+        "type": "tab",
+        "label": "NodeDSF BLTouch",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "12806b1c.746315",
+        "type": "ui_button",
+        "z": "156cc64d.b1239a",
+        "name": "Pin Up",
+        "group": "decf8611.ea0078",
+        "order": 2,
+        "width": "3",
+        "height": "1",
+        "passthru": false,
+        "label": "Pin Up",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "{\"cmd\":\"M98 P\\\"0:/macros/pin up.g\\\"\"}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 1350,
+        "y": 520,
+        "wires": [
+            [
+                "8bea2a8a.36f4b8"
+            ]
+        ]
+    },
+    {
+        "id": "8bea2a8a.36f4b8",
+        "type": "dsf-command",
+        "z": "156cc64d.b1239a",
+        "name": "Execute BL Touch Command",
+        "command": "",
+        "server": "c38982ff.fa509",
+        "x": 1740,
+        "y": 600,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "214d733.1447b8c",
+        "type": "ui_button",
+        "z": "156cc64d.b1239a",
+        "name": "Pin Down",
+        "group": "decf8611.ea0078",
+        "order": 3,
+        "width": "3",
+        "height": "1",
+        "passthru": false,
+        "label": "Pin Down",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "{\"cmd\":\"M98 P\\\"0:/macros/pin down.g\\\"\"}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 1360,
+        "y": 580,
+        "wires": [
+            [
+                "8bea2a8a.36f4b8"
+            ]
+        ]
+    },
+    {
+        "id": "730a40e7.ec3fe",
+        "type": "ui_button",
+        "z": "156cc64d.b1239a",
+        "name": "Alarm Release",
+        "group": "decf8611.ea0078",
+        "order": 4,
+        "width": "3",
+        "height": "1",
+        "passthru": false,
+        "label": "Alarm Release",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "{\"cmd\":\"M98 P\\\"0:/macros/alarm release pin.g\\\"\"}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 1380,
+        "y": 640,
+        "wires": [
+            [
+                "8bea2a8a.36f4b8"
+            ]
+        ]
+    },
+    {
+        "id": "9b5f821b.3d8fc",
+        "type": "ui_button",
+        "z": "156cc64d.b1239a",
+        "name": "Self Test",
+        "group": "decf8611.ea0078",
+        "order": 5,
+        "width": "3",
+        "height": "1",
+        "passthru": false,
+        "label": "Self Test",
+        "tooltip": "",
+        "color": "",
+        "bgcolor": "",
+        "icon": "",
+        "payload": "{\"cmd\":\"M98 P\\\"0:/macros/self test.g\\\"\"}",
+        "payloadType": "json",
+        "topic": "",
+        "x": 1360,
+        "y": 700,
+        "wires": [
+            [
+                "8bea2a8a.36f4b8"
+            ]
+        ]
+    },
+    {
+        "id": "66be1d3b.a3fd64",
+        "type": "ui_template",
+        "z": "156cc64d.b1239a",
+        "group": "e94b23e3.3db2d",
+        "name": "WebCam",
+        "order": 0,
+        "width": "6",
+        "height": "4",
+        "format": "<!DOCTYPE html>  \n<html>  \n    <head>  \n        <style> \n            .geeks { \n                width:100%; \n                height:100%px; \n            } \n            img { \n                width:100%; \n                height:100%; \n            } \n        </style> \n    </head>  \n    <body> \n        <div class = \"geeks\"> \n            <img src= \"http://10.66.1.52:8081\"></img>\n        </div> \n    </body>  \n</html>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "x": 1360,
+        "y": 440,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "decf8611.ea0078",
+        "type": "ui_group",
+        "name": "Control",
+        "tab": "839aeda1.175a7",
+        "order": 2,
+        "disp": false,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "c38982ff.fa509",
+        "type": "dsf-connector",
+        "server": "10.66.1.52"
+    },
+    {
+        "id": "e94b23e3.3db2d",
+        "type": "ui_group",
+        "name": "View",
+        "tab": "839aeda1.175a7",
+        "order": 1,
+        "disp": false,
+        "width": "6",
+        "collapse": false
+    },
+    {
+        "id": "839aeda1.175a7",
+        "type": "ui_tab",
+        "name": "BLTouch",
+        "icon": "fa-arrows-v",
+        "disabled": false,
+        "hidden": false
+    }
+]

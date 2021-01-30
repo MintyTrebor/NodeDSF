@@ -1,0 +1,1025 @@
+[
+    {
+        "id": "eaa183c1.0c33d",
+        "type": "tab",
+        "label": "NodeDSF TimeLapse",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "5a67844.6eab67c",
+        "type": "link in",
+        "z": "eaa183c1.0c33d",
+        "name": "Timeplase Monitor In",
+        "links": [],
+        "x": 195,
+        "y": 200,
+        "wires": [
+            [
+                "f76c96ff.832848",
+                "cd1fbc9.7a3c44",
+                "18b08c9d.78e3d3"
+            ]
+        ]
+    },
+    {
+        "id": "f76c96ff.832848",
+        "type": "dsf-intercept",
+        "z": "eaa183c1.0c33d",
+        "name": "Take a Photo",
+        "command": "SnapShot Me",
+        "identifier": "NRCMD",
+        "x": 350,
+        "y": 80,
+        "wires": [
+            [
+                "800f6c93.6008b"
+            ]
+        ]
+    },
+    {
+        "id": "3fd2b05.b438f5",
+        "type": "dsf-command",
+        "z": "eaa183c1.0c33d",
+        "name": "Acknowledge Photo Command",
+        "command": "M292",
+        "server": "c38982ff.fa509",
+        "x": 1110,
+        "y": 40,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "fac10f34.c28ed",
+        "type": "http request",
+        "z": "eaa183c1.0c33d",
+        "name": "Motioneye SnapShot",
+        "method": "GET",
+        "ret": "bin",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "authType": "",
+        "x": 820,
+        "y": 80,
+        "wires": [
+            [
+                "3fd2b05.b438f5",
+                "69c15675.15c8d8"
+            ]
+        ]
+    },
+    {
+        "id": "af7819d4.d19e78",
+        "type": "file",
+        "z": "eaa183c1.0c33d",
+        "name": "Write Image To File",
+        "filename": "",
+        "appendNewline": false,
+        "createDir": true,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 1370,
+        "y": 120,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "69c15675.15c8d8",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Create File Name & Path",
+        "func": "function zeroFill( number, width )\n{\n  width -= number.toString().length;\n  if ( width > 0 )\n  {\n    return new Array( width + (/\\./.test( number ) ? 2 : 1) ).join( '0' ) + number;\n  }\n  return number + \"\"; // always return a string\n}\n\nif (flow.get(\"counter\") === undefined) {\n    flow.set(\"counter\", 0)\n}\nflow.set(\"counter\", (flow.get(\"counter\")+1))\n\nvar padnum = zeroFill((flow.get(\"counter\")), 6)\n\n\nmsg.filename = flow.get(\"fullImgPath\") + \"/cap\" + padnum + \".jpg\"\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1090,
+        "y": 120,
+        "wires": [
+            [
+                "af7819d4.d19e78"
+            ]
+        ]
+    },
+    {
+        "id": "7c07c839.9b9248",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Reset Number Counter & Get Job Name",
+        "func": "var splitFile = function (str) {\n    return str.split('\\\\').pop().split('/').pop();\n};\n\nvar jobName = msg.payload.fullModel.job.file.fileName;\nvar fileName = splitFile(jobName);\n\n//trim off the gcode extension from the file name\nfileName= fileName.substring(0, fileName.length -6);\n\nflow.set(\"jobName\", fileName);\nflow.set(\"counter\", 0);\n\n//set cmds to create directory\nmsg.payload.path = flow.get(\"imgPath\", \"storeInFile\");\nmsg.payload.filePrefix = fileName;\n\n//msg.payload = \"mkdir \" + flow.get(\"imgPath\") + fileName;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 740,
+        "y": 200,
+        "wires": [
+            [
+                "d9bfb013.6ad85"
+            ]
+        ]
+    },
+    {
+        "id": "cd1fbc9.7a3c44",
+        "type": "dsf-intercept",
+        "z": "eaa183c1.0c33d",
+        "name": "Reset File Counter",
+        "command": "Reset File Counter",
+        "identifier": "NRCMD",
+        "x": 370,
+        "y": 200,
+        "wires": [
+            [
+                "7c07c839.9b9248"
+            ]
+        ]
+    },
+    {
+        "id": "8e17a4ec.916bd8",
+        "type": "dsf-command",
+        "z": "eaa183c1.0c33d",
+        "name": "Acknowledge Reset Command",
+        "command": "M292",
+        "server": "c38982ff.fa509",
+        "x": 1550,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "18b08c9d.78e3d3",
+        "type": "dsf-intercept",
+        "z": "eaa183c1.0c33d",
+        "name": "Convert To Video",
+        "command": "Convert To Video",
+        "identifier": "NRCMD",
+        "x": 370,
+        "y": 320,
+        "wires": [
+            [
+                "7985165b.167ed8",
+                "f218ef96.b361"
+            ]
+        ]
+    },
+    {
+        "id": "2c607131.65247e",
+        "type": "comment",
+        "z": "eaa183c1.0c33d",
+        "name": "Open Me for Example ffmpeg command",
+        "info": "/usr/bin/ffmpeg -framerate 10 -i /home/mintytrebor/Pictures/timelapse/cap%06d.jpg -r 5 ",
+        "x": 1130,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "7985165b.167ed8",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Set FFMPEG Command Parameters",
+        "func": "var jobName = flow.get(\"jobName\", \"default\");\nvar vidFile = '\"' + flow.get(\"vidPath\", \"storeInFile\") + jobName + \".mp4\" +'\"';\nvar imgPath = '\"' + flow.get(\"fullImgPath\", \"default\") + \"/\";\nvar ffMpgCmd = flow.get(\"ffmpegPath\", \"storeInFile\") + \" -framerate 10 -i \" + imgPath + 'cap%06d.jpg\" -r 5 ' + vidFile;\nmsg.payload = ffMpgCmd;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 730,
+        "y": 280,
+        "wires": [
+            [
+                "5425633b.0293ec"
+            ]
+        ]
+    },
+    {
+        "id": "5425633b.0293ec",
+        "type": "exec",
+        "z": "eaa183c1.0c33d",
+        "command": "",
+        "addpay": true,
+        "append": "",
+        "useSpawn": "false",
+        "timer": "",
+        "oldrc": false,
+        "name": "Run FFMPEG conversion",
+        "x": 1090,
+        "y": 280,
+        "wires": [
+            [],
+            [],
+            []
+        ]
+    },
+    {
+        "id": "95ad3deb.bd233",
+        "type": "inject",
+        "z": "eaa183c1.0c33d",
+        "name": "Timelapse Defaults",
+        "props": [
+            {
+                "p": "payload.timelapse.webCamURL",
+                "v": "http://10.66.1.52:8765/picture/2/current/",
+                "vt": "str"
+            },
+            {
+                "p": "payload.timelapse.imgPath",
+                "v": "/home/pi/Pictures/timelapse/",
+                "vt": "str"
+            },
+            {
+                "p": "payload.timelapse.vidPath",
+                "v": "/home/pi/Videos/",
+                "vt": "str"
+            },
+            {
+                "p": "payload.timelapse.ffmpegPath",
+                "v": "/usr/bin/ffmpeg",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 170,
+        "y": 800,
+        "wires": [
+            [
+                "57add193.53431"
+            ]
+        ]
+    },
+    {
+        "id": "d0e4adc3.552d9",
+        "type": "ui_text_input",
+        "z": "eaa183c1.0c33d",
+        "name": "Image Folder Path",
+        "label": "Image Folder Path",
+        "tooltip": "enter a full path location that can be reached by node-red",
+        "group": "81f8eea0.9ef08",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "mode": "text",
+        "delay": 300,
+        "topic": "",
+        "x": 1290,
+        "y": 680,
+        "wires": [
+            [
+                "cafb35c2.b7ed78"
+            ]
+        ]
+    },
+    {
+        "id": "4a73fff6.a6753",
+        "type": "change",
+        "z": "eaa183c1.0c33d",
+        "name": "Get webCamURL Value",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "#:(storeInFile)::webCamURL",
+                "tot": "flow"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 970,
+        "y": 620,
+        "wires": [
+            [
+                "bd537f45.16ea8"
+            ]
+        ]
+    },
+    {
+        "id": "bd537f45.16ea8",
+        "type": "ui_text_input",
+        "z": "eaa183c1.0c33d",
+        "name": "Web Cam URL",
+        "label": "WebCamURL",
+        "tooltip": "URL for webcam snapshot",
+        "group": "81f8eea0.9ef08",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "mode": "text",
+        "delay": 300,
+        "topic": "",
+        "x": 1280,
+        "y": 620,
+        "wires": [
+            [
+                "aff547bf.b8beb8"
+            ]
+        ]
+    },
+    {
+        "id": "6fc3e835.4862b8",
+        "type": "change",
+        "z": "eaa183c1.0c33d",
+        "name": "Get imgPath Value",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "#:(storeInFile)::imgPath",
+                "tot": "flow"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 950,
+        "y": 680,
+        "wires": [
+            [
+                "d0e4adc3.552d9"
+            ]
+        ]
+    },
+    {
+        "id": "2891404a.32ebb",
+        "type": "change",
+        "z": "eaa183c1.0c33d",
+        "name": "Get vidPath Value",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "#:(storeInFile)::vidPath",
+                "tot": "flow"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 950,
+        "y": 740,
+        "wires": [
+            [
+                "945a38bd.fc2148"
+            ]
+        ]
+    },
+    {
+        "id": "945a38bd.fc2148",
+        "type": "ui_text_input",
+        "z": "eaa183c1.0c33d",
+        "name": "Video Folder Path",
+        "label": "Video Folder Path",
+        "tooltip": "enter a full path location that can be reached by node-red",
+        "group": "81f8eea0.9ef08",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "mode": "text",
+        "delay": 300,
+        "topic": "",
+        "x": 1290,
+        "y": 740,
+        "wires": [
+            [
+                "b2fc7aee.9a1248"
+            ]
+        ]
+    },
+    {
+        "id": "39000f0c.5d536",
+        "type": "change",
+        "z": "eaa183c1.0c33d",
+        "name": "Get ffmpegPath Value",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "#:(storeInFile)::ffmpegPath",
+                "tot": "flow"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 960,
+        "y": 800,
+        "wires": [
+            [
+                "443931d3.82685"
+            ]
+        ]
+    },
+    {
+        "id": "443931d3.82685",
+        "type": "ui_text_input",
+        "z": "eaa183c1.0c33d",
+        "name": "ffmpeg Path",
+        "label": "ffmpeg Path",
+        "tooltip": "enter the full path to ffmpeg eg: /usr/bin/ffmpeg",
+        "group": "81f8eea0.9ef08",
+        "order": 5,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "mode": "text",
+        "delay": 300,
+        "topic": "",
+        "x": 1270,
+        "y": 800,
+        "wires": [
+            [
+                "99462e8b.1a5be"
+            ]
+        ]
+    },
+    {
+        "id": "f218ef96.b361",
+        "type": "dsf-command",
+        "z": "eaa183c1.0c33d",
+        "name": "Acknowledge Convert Command",
+        "command": "M292",
+        "server": "c38982ff.fa509",
+        "x": 720,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "cbc5c5ec.f0f098",
+        "type": "ui_template",
+        "z": "eaa183c1.0c33d",
+        "group": "81f8eea0.9ef08",
+        "name": "Instructions",
+        "order": 7,
+        "width": "12",
+        "height": "8",
+        "format": "<div>\n    <div style=\"text-align: center;\"><h1 style=\"text-align: center; font-size: 16px;\">Slicer Settings</h1></div>\n    <br>\n    <div style=\"text-align: center;\">\n        To enable Timelapse enter the following command into your slicers start g-code:\n    </div>\n    <div style=\"text-align: center; color: cyan\">\n        M291 P\"Reset File Counter\" R\"NRCMD\"\n    </div>\n    <br>\n    <div style=\"text-align: center;\">\n        To take a photo at every layer change, enter the following command into your slicers before layer change g-code:\n    </div>\n    <div style=\"text-align: center; color: cyan\">\n        M291 P\"SnapShot Me\" R\"NRCMD\"\n    </div>\n    <br>\n    <div style=\"text-align: center;\">\n        To start the video conversion at the end of a job, enter the following command into your slicers end gcode:\n    </div>\n    <div style=\"text-align: center; color: cyan\">\n        M291 P\"Convert To Video\" R\"NRCMD\"\n    </div>\n    <br>\n    <div style=\"text-align: center;\">\n        <span style=\"color: red\">NOTE:</span> Image & Video folder paths must end in <span style=\"color: cyan\">/</span>\n    </div>\n</div>\n    ",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "x": 1270,
+        "y": 860,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b795ad86.f5bbc",
+        "type": "ui_template",
+        "z": "eaa183c1.0c33d",
+        "group": "81f8eea0.9ef08",
+        "name": "Heading",
+        "order": 1,
+        "width": "12",
+        "height": "1",
+        "format": "<div style=\"text-align: center;\">\n    <h1 style=\"text-align: center; font-size: 16px;\">Timelapse Settings</h1>\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "x": 1260,
+        "y": 560,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "45261eeb.f16dd",
+        "type": "ui_template",
+        "z": "eaa183c1.0c33d",
+        "group": "dd81f149.8fe9e",
+        "name": "Example before layer change g-code",
+        "order": 7,
+        "width": "12",
+        "height": "10",
+        "format": "<div>\n    <div style=\"text-align: center;\"><h1 style=\"text-align: center; font-size: 16px;\">Example 'before layer change' g-code</h1></div>\n    <div style=\"text-align: center;\">\n        The g-code below shows a basic set of instructions for a cartesian style 3d Printer:\n    </div>\n    <br>\n    <div style=\"text-align: center; height: 80%;\">\n        <div style=\"width: 95%; text-align: left; height: 70%; color: cyan;\">\n            G60 R1                        ; Save Current Co-ords to slot 1<br>\n            M83                           ; Relative Moves<br>\n            G91                           ; Relative positioning <br>                \n            G1 Z5 F360                    ; lift Z by 5mm<br>\n            G90                           ; absolute positioning<br>\n            G1 X0 Y100 F6000              ; go to X=0 Y=100<br>\n            G4 S1                         ; wait 2 secs<br>\n            M291 P\"SnapShot Me\" R\"NRCMD\"  ; snd command to NodeDSF & wait for reply<br>\n            G4 S2                         ; wait 2 secs<br>\n            G1 R1 X0 Y0                   ; go back to the last print move stored in slot 1<br>\n            M83                           ; relative extruder moves<br>\n        </div>\n    </div>\n    <div style=\"text-align: center;\">\n        You will need to adapt these to suit your printer and to control things like ooze etc.\n    </div>\n\n    <div style=\"text-align: center;\">\n        To enable automatic video creation, install ffmpeg on your r-pi by running the following from a terminal/ssh session:\n    </div>\n    <div style=\"text-align: center; color: cyan;\">\n        sudo apt-get install ffmpeg\n    </div>\n</div>\n    ",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "x": 1350,
+        "y": 920,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "bfc899b0.70d608",
+        "type": "comment",
+        "z": "eaa183c1.0c33d",
+        "name": "Retrieve last values on boot/start",
+        "info": "",
+        "x": 190,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "c9f29a9e.0d7d98",
+        "type": "comment",
+        "z": "eaa183c1.0c33d",
+        "name": "Manual reset to defaults (change these to your parameters)",
+        "info": "",
+        "x": 270,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "b1a4135d.0e564",
+        "type": "comment",
+        "z": "eaa183c1.0c33d",
+        "name": "Nodes below control the simple Timelapse Settings Dashboard",
+        "info": "",
+        "x": 1300,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "a42bf3bb.41dd",
+        "type": "comment",
+        "z": "eaa183c1.0c33d",
+        "name": "Store Values in memory and pass to dashboard",
+        "info": "",
+        "x": 960,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "72c91f93.f6ac7",
+        "type": "comment",
+        "z": "eaa183c1.0c33d",
+        "name": "Update Values in memory and storage",
+        "info": "",
+        "x": 1670,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "f741dddd.d7ef7",
+        "type": "uibuilder",
+        "z": "eaa183c1.0c33d",
+        "name": "NodeDSF TimeLapse",
+        "topic": "",
+        "url": "NodeDSFTimeLapse",
+        "fwdInMessages": false,
+        "allowScripts": false,
+        "allowStyles": false,
+        "copyIndex": true,
+        "showfolder": false,
+        "useSecurity": false,
+        "sessionLength": 432000,
+        "tokenAutoExtend": false,
+        "x": 1300,
+        "y": 1060,
+        "wires": [
+            [
+                "450e0fa1.3fb9a"
+            ],
+            [
+                "bf706dfd.9d32a"
+            ]
+        ]
+    },
+    {
+        "id": "ef1ac24f.ab362",
+        "type": "comment",
+        "z": "eaa183c1.0c33d",
+        "name": "This is the HTML version of Timelapse settings",
+        "info": "",
+        "x": 1370,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "7d51fd5b.d310e4",
+        "type": "link out",
+        "z": "eaa183c1.0c33d",
+        "name": "TL Defaults Out",
+        "links": [
+            "f2ecb4cd.2c5628"
+        ],
+        "x": 595,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "4239f38d.e5ae6c",
+        "type": "link out",
+        "z": "eaa183c1.0c33d",
+        "name": "TL Persist Data Out",
+        "links": [
+            "f2ecb4cd.2c5628"
+        ],
+        "x": 595,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "ac1dcdc3.e3c61",
+        "type": "change",
+        "z": "eaa183c1.0c33d",
+        "name": "Get Settings from flow",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload.timelapse.webCamURL",
+                "pt": "msg",
+                "to": "#:(storeInFile)::webCamURL",
+                "tot": "flow"
+            },
+            {
+                "t": "set",
+                "p": "payload.timelapse.imgPath",
+                "pt": "msg",
+                "to": "#:(storeInFile)::imgPath",
+                "tot": "flow"
+            },
+            {
+                "t": "set",
+                "p": "payload.timelapse.vidPath",
+                "pt": "msg",
+                "to": "#:(storeInFile)::vidPath",
+                "tot": "flow"
+            },
+            {
+                "t": "set",
+                "p": "payload.timelapse.ffmpegPath",
+                "pt": "msg",
+                "to": "#:(storeInFile)::ffmpegPath",
+                "tot": "flow"
+            },
+            {
+                "t": "delete",
+                "p": "uibuilderCtrl",
+                "pt": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1020,
+        "y": 1060,
+        "wires": [
+            [
+                "f741dddd.d7ef7"
+            ]
+        ]
+    },
+    {
+        "id": "bf706dfd.9d32a",
+        "type": "switch",
+        "z": "eaa183c1.0c33d",
+        "name": "Check Ready",
+        "property": "uibuilderCtrl",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "ready for content",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 1180,
+        "y": 1180,
+        "wires": [
+            [
+                "ac1dcdc3.e3c61"
+            ]
+        ]
+    },
+    {
+        "id": "6b901e39.fc2ce",
+        "type": "link in",
+        "z": "eaa183c1.0c33d",
+        "name": "TL HTML Data In",
+        "links": [],
+        "x": 1095,
+        "y": 1000,
+        "wires": [
+            [
+                "f741dddd.d7ef7"
+            ]
+        ]
+    },
+    {
+        "id": "aade0ffd.59a7c",
+        "type": "inject",
+        "z": "eaa183c1.0c33d",
+        "name": "Get Data on Start",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 170,
+        "y": 620,
+        "wires": [
+            [
+                "29ffabfb.723514"
+            ]
+        ]
+    },
+    {
+        "id": "c611bcf6.bf136",
+        "type": "debug",
+        "z": "eaa183c1.0c33d",
+        "name": "",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 930,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "f2ecb4cd.2c5628",
+        "type": "link in",
+        "z": "eaa183c1.0c33d",
+        "name": "TL Split Values In",
+        "links": [
+            "4239f38d.e5ae6c",
+            "7d51fd5b.d310e4",
+            "ee5892e1.ba71b"
+        ],
+        "x": 735,
+        "y": 709,
+        "wires": [
+            [
+                "6fc3e835.4862b8",
+                "2891404a.32ebb",
+                "39000f0c.5d536",
+                "4a73fff6.a6753"
+            ]
+        ]
+    },
+    {
+        "id": "aff547bf.b8beb8",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Set webcam flow val",
+        "func": "flow.set('webCamURL', msg.payload, \"storeInFile\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1660,
+        "y": 620,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "b2fc7aee.9a1248",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Set vidPath flow val",
+        "func": "flow.set('vidPath', msg.payload, \"storeInFile\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1650,
+        "y": 740,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "99462e8b.1a5be",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Set ffmpegPath flow val",
+        "func": "flow.set('ffmpegPath', msg.payload, \"storeInFile\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1670,
+        "y": 800,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "cafb35c2.b7ed78",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Set imgPath flow vals",
+        "func": "flow.set('imgPath', msg.payload, \"storeInFile\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1660,
+        "y": 680,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "ab153ef5.4da26",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Set flow fullImgPath val",
+        "func": "flow.set('fullImgPath', msg.payload.directory);\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1270,
+        "y": 200,
+        "wires": [
+            [
+                "8e17a4ec.916bd8"
+            ]
+        ]
+    },
+    {
+        "id": "450e0fa1.3fb9a",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Update All flow conext values",
+        "func": "flow.set('webCamURL', msg.payload[\"timelapse.webCamURL\"], \"storeInFile\");\nflow.set('imgPath', msg.payload[\"timelapse.imgPath\"], \"storeInFile\");\nflow.set('vidPath', msg.payload[\"timelapse.vidPath\"], \"storeInFile\");\nflow.set('ffmpegPath', msg.payload[\"timelapse.ffmpegPath\"], \"storeInFile\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1680,
+        "y": 1060,
+        "wires": [
+            [
+                "ee5892e1.ba71b"
+            ]
+        ]
+    },
+    {
+        "id": "d9bfb013.6ad85",
+        "type": "fs-ops-mktmpdir",
+        "z": "eaa183c1.0c33d",
+        "name": "Create Img Dir",
+        "path": "payload.path",
+        "pathType": "msg",
+        "prefix": "payload.filePrefix",
+        "prefixType": "msg",
+        "mode": "777",
+        "fullpath": "payload.directory",
+        "fullpathType": "msg",
+        "x": 1040,
+        "y": 200,
+        "wires": [
+            [
+                "ab153ef5.4da26"
+            ]
+        ]
+    },
+    {
+        "id": "ee5892e1.ba71b",
+        "type": "link out",
+        "z": "eaa183c1.0c33d",
+        "name": "TL HTML Data out",
+        "links": [
+            "f2ecb4cd.2c5628"
+        ],
+        "x": 1915,
+        "y": 1060,
+        "wires": []
+    },
+    {
+        "id": "29ffabfb.723514",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Get flow vals from storage",
+        "func": "flow.get('webCamURL', \"storeInFile\");\nflow.get('imgPath', \"storeInFile\");\nflow.get('vidPath', \"storeInFile\");\nflow.get('ffmpegPath', \"storeInFile\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 410,
+        "y": 620,
+        "wires": [
+            [
+                "4239f38d.e5ae6c"
+            ]
+        ]
+    },
+    {
+        "id": "316f4164.eff81e",
+        "type": "comment",
+        "z": "eaa183c1.0c33d",
+        "name": "Update Values in memory and storage",
+        "info": "",
+        "x": 1710,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "57add193.53431",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Set flow context vals",
+        "func": "flow.set('webCamURL', msg.payload.timelapse.webCamURL, \"storeInFile\");\nflow.set('imgPath', msg.payload.timelapse.imgPath, \"storeInFile\");\nflow.set('vidPath', msg.payload.timelapse.vidPath, \"storeInFile\");\nflow.set('ffmpegPath', msg.payload.timelapse.ffmpegPath, \"storeInFile\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 420,
+        "y": 800,
+        "wires": [
+            [
+                "7d51fd5b.d310e4"
+            ]
+        ]
+    },
+    {
+        "id": "800f6c93.6008b",
+        "type": "function",
+        "z": "eaa183c1.0c33d",
+        "name": "Get WebCam URL",
+        "func": "msg.url = flow.get('webCamURL', 'storeInFile');\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 570,
+        "y": 80,
+        "wires": [
+            [
+                "fac10f34.c28ed"
+            ]
+        ]
+    },
+    {
+        "id": "c38982ff.fa509",
+        "type": "dsf-connector",
+        "server": "10.66.1.52"
+    },
+    {
+        "id": "81f8eea0.9ef08",
+        "type": "ui_group",
+        "name": "               Timelapse Settings",
+        "tab": "d47ab041.d0176",
+        "order": 1,
+        "disp": false,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "dd81f149.8fe9e",
+        "type": "ui_group",
+        "name": "Timelapse help",
+        "tab": "d47ab041.d0176",
+        "order": 2,
+        "disp": false,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "d47ab041.d0176",
+        "type": "ui_tab",
+        "name": "Timelapse",
+        "icon": "fa-camera",
+        "order": 2,
+        "disabled": false,
+        "hidden": false
+    }
+]

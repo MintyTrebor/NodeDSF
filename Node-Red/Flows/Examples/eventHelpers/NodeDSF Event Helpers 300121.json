@@ -1,0 +1,282 @@
+[
+    {
+        "id": "9035d25a.a499a",
+        "type": "tab",
+        "label": "NodeDSF Event Helpers",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "de8b31df.b7df4",
+        "type": "link in",
+        "z": "9035d25a.a499a",
+        "name": "Event Helpers In",
+        "links": [],
+        "x": 235,
+        "y": 340,
+        "wires": [
+            [
+                "57f39bfc.532554",
+                "c6229593.788588",
+                "80b1e317.f0864",
+                "f6bf6987.efb078",
+                "416c25f6.cf60dc",
+                "12fdefea.9a35a",
+                "c5437edb.c0101"
+            ]
+        ]
+    },
+    {
+        "id": "80b1e317.f0864",
+        "type": "dsf-event",
+        "z": "9035d25a.a499a",
+        "name": "T0 Current Temp",
+        "interval": "5",
+        "delta": "1",
+        "modelPath": "heat.heaters[1].current",
+        "outputs": 1,
+        "x": 550,
+        "y": 180,
+        "wires": [
+            [
+                "2c14dca7.c808e4"
+            ]
+        ]
+    },
+    {
+        "id": "4c6e4254.bf230c",
+        "type": "link out",
+        "z": "9035d25a.a499a",
+        "name": "T0 Current Temp Event",
+        "links": [],
+        "x": 1015,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "f6bf6987.efb078",
+        "type": "dsf-event",
+        "z": "9035d25a.a499a",
+        "name": "Status Change",
+        "interval": "0",
+        "delta": "0",
+        "modelPath": "state.status",
+        "outputs": 1,
+        "x": 540,
+        "y": 260,
+        "wires": [
+            [
+                "f7c18917.bc39c8"
+            ]
+        ]
+    },
+    {
+        "id": "f7c18917.bc39c8",
+        "type": "link out",
+        "z": "9035d25a.a499a",
+        "name": "Status Change Event",
+        "links": [],
+        "x": 1015,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "57f39bfc.532554",
+        "type": "dsf-event",
+        "z": "9035d25a.a499a",
+        "name": "Bed Current Temp",
+        "interval": "5",
+        "delta": "1",
+        "modelPath": "heat.heaters[0].current",
+        "outputs": 1,
+        "x": 550,
+        "y": 100,
+        "wires": [
+            [
+                "bce757e0.919b58"
+            ]
+        ]
+    },
+    {
+        "id": "2c14dca7.c808e4",
+        "type": "function",
+        "z": "9035d25a.a499a",
+        "name": "Create Temp Reading T0",
+        "func": "var currTemp = msg.payload.patchModel.heat.heaters[1].current;\nvar TargTemp = msg.payload.fullModel.heat.heaters[1].active;\nmsg.payload.T0CurrTargTemp = \"T0: \" + currTemp + \"/\" + TargTemp;\nmsg.payload.T0CurrTemp = currTemp;\nmsg.payload.T0TargTemp = TargTemp;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 790,
+        "y": 180,
+        "wires": [
+            [
+                "4c6e4254.bf230c"
+            ]
+        ]
+    },
+    {
+        "id": "bce757e0.919b58",
+        "type": "function",
+        "z": "9035d25a.a499a",
+        "name": "Create Temp Reading Bed",
+        "func": "var currTemp = msg.payload.patchModel.heat.heaters[0].current;\nvar TargTemp = msg.payload.fullModel.heat.heaters[0].active;\nmsg.payload.BedCurrTargTemp = \"T0: \" + currTemp + \"/\" + TargTemp;\nmsg.payload.BedCurrTemp = currTemp;\nmsg.payload.BedTargTemp = TargTemp;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 800,
+        "y": 100,
+        "wires": [
+            [
+                "1359767f.43214a"
+            ]
+        ]
+    },
+    {
+        "id": "1359767f.43214a",
+        "type": "link out",
+        "z": "9035d25a.a499a",
+        "name": "Bed Current Temp Event",
+        "links": [],
+        "x": 1015,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "416c25f6.cf60dc",
+        "type": "dsf-event",
+        "z": "9035d25a.a499a",
+        "name": "Layer Change",
+        "interval": "0",
+        "delta": "1",
+        "modelPath": "job.file.layer",
+        "outputs": 1,
+        "x": 540,
+        "y": 340,
+        "wires": [
+            [
+                "5b78654e.52f79c"
+            ]
+        ]
+    },
+    {
+        "id": "5b78654e.52f79c",
+        "type": "function",
+        "z": "9035d25a.a499a",
+        "name": "Create Layer Info",
+        "func": "var currLayer = msg.payload.patchModel.job.file.layer;\nvar totalLayers = msg.payload.fullModel.job.file.layers;\nmsg.payload.LayersCombined= currLayer + \"/\" + totalLayers;\nmsg.payload.CurrLayer = currLayer;\nmsg.payload.TotalLayers = totalLayers;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 770,
+        "y": 340,
+        "wires": [
+            [
+                "d18723c3.f8df4"
+            ]
+        ]
+    },
+    {
+        "id": "d18723c3.f8df4",
+        "type": "link out",
+        "z": "9035d25a.a499a",
+        "name": "Layer Change Event",
+        "links": [],
+        "x": 1015,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "dd8e9cf0.4b5e",
+        "type": "comment",
+        "z": "9035d25a.a499a",
+        "name": "Connect an Event node to the \"Event Helpers In\" node to start monitoring.",
+        "info": "",
+        "x": 380,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "12fdefea.9a35a",
+        "type": "dsf-event",
+        "z": "9035d25a.a499a",
+        "name": "Job Name Change",
+        "interval": "0",
+        "delta": "0",
+        "modelPath": "job.file.fileName",
+        "outputs": 1,
+        "x": 550,
+        "y": 420,
+        "wires": [
+            [
+                "9d16b4a9.f24c58"
+            ]
+        ]
+    },
+    {
+        "id": "9d16b4a9.f24c58",
+        "type": "link out",
+        "z": "9035d25a.a499a",
+        "name": "Job Name Event",
+        "links": [],
+        "x": 1015,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "c6229593.788588",
+        "type": "dsf-event",
+        "z": "9035d25a.a499a",
+        "name": "Display Message",
+        "interval": "0",
+        "delta": "0",
+        "modelPath": "state.displayMessage",
+        "outputs": 1,
+        "x": 550,
+        "y": 500,
+        "wires": [
+            [
+                "f7aed42c.8fcea8"
+            ]
+        ]
+    },
+    {
+        "id": "c5437edb.c0101",
+        "type": "dsf-event",
+        "z": "9035d25a.a499a",
+        "name": "DSF Messages",
+        "interval": "0",
+        "delta": "0",
+        "modelPath": "messages",
+        "outputs": 1,
+        "x": 540,
+        "y": 580,
+        "wires": [
+            [
+                "b77f0a07.19f708"
+            ]
+        ]
+    },
+    {
+        "id": "f7aed42c.8fcea8",
+        "type": "link out",
+        "z": "9035d25a.a499a",
+        "name": "Display Msg Event",
+        "links": [],
+        "x": 1015,
+        "y": 500,
+        "wires": []
+    },
+    {
+        "id": "b77f0a07.19f708",
+        "type": "link out",
+        "z": "9035d25a.a499a",
+        "name": "DSF Msg Event",
+        "links": [],
+        "x": 1015,
+        "y": 580,
+        "wires": []
+    }
+]
