@@ -37,13 +37,13 @@ module.exports = function(RED) {
             if (typeof msg.payload.cmdIdentifier !== "undefined"){
                 cmdId = msg.payload.cmdIdentifier;
             } else {
-                cmdId = node.command;
+                cmdId = node.identifier;
             }
 
             if (typeof msg.payload.cmdCode !== "undefined"){
                 cmdCode = msg.payload.cmdCode;
             } else {
-                cmdCode = node.identifier;
+                cmdCode = node.command;
             }
 
             var patchJSON = msg.payload.patchModel;
