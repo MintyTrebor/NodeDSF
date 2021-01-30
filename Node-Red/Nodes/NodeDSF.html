@@ -18,19 +18,19 @@
 <script type="text/html" data-template-name="dsf-event">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="common.label.name"> Name</span></label>
-        <input type="text" id="node-input-name" data-i18n="[placeholder]common.label.name">
+        <input type="text" id="node-input-name" data-i18n="">
     </div>
     <div class="form-row">
         <label for="node-input-interval"><span data-i18n="common.label.interval"> Interval (sec's)</span></label>
-        <input type="number" id="node-input-interval" data-i18n="[placeholder]common.label.interval">
+        <input type="number" step=".01" id="node-input-interval" data-i18n="">
     </div>
     <div class="form-row">
         <label for="node-input-delta"><span data-i18n="common.label.delta"> Change Delta</span></label>
-        <input type="number" id="node-input-delta" data-i18n="[placeholder]common.label.delta">
+        <input type="number" step=".01" id="node-input-delta" data-i18n="">
     </div>
     <div class="form-row">
         <label for="node-input-modelPath"><span data-i18n="common.label.modelPath"> Model Path</span></label>
-        <input type="text" id="node-input-modelPath" data-i18n="[placeholder]common.label.modelPath">
+        <input type="text" id="node-input-modelPath" data-i18n="">
     </div>
 </script>
 
@@ -111,10 +111,10 @@
 <script type="text/html" data-template-name="dsf-monitor">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="common.label.name"> Name</span></label>
-        <input type="text" id="node-input-name" data-i18n="[placeholder]common.label.name">
+        <input type="text" id="node-input-name" data-i18n="">
     </div>
     <div class="form-row">
-        <label for="node-input-server"><i class="fa fa-globe"></i><span data-i18n="dsf-monitor.label.server"> DSF SBC IP</span></label>
+        <label for="node-input-server"><i class="fa fa-globe"></i><span data-i18n=""> DSF SBC IP</span></label>
         <input type="text" id="node-input-server" style="width: 70%"/>
     </div>
 </script>
@@ -158,7 +158,7 @@
 <script type="text/html" data-template-name="dsf-command">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="common.label.name"> Name</span></label>
-        <input type="text" id="node-input-name" data-i18n="[placeholder]common.label.name">
+        <input type="text" id="node-input-name" data-i18n="">
     </div>
     <div class="form-row">
         <label for="node-input-server"><i class="fa fa-globe"></i><span data-i18n="dsf-command.label.server"> DSF SBC IP</span></label>
@@ -166,7 +166,7 @@
     </div>
     <div class="form-row">
         <label for="node-input-command"><span data-i18n="common.label.command"> Command</span></label>
-        <input type="text" id="node-input-command" data-i18n="[placeholder]common.label.command">
+        <input type="text" id="node-input-command" data-i18n="">
     </div>
 </script>
 
@@ -203,15 +203,15 @@
 <script type="text/html" data-template-name="dsf-intercept">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="common.label.name"> Name</span></label>
-        <input type="text" id="node-input-name" data-i18n="[placeholder]common.label.name">
+        <input type="text" id="node-input-name" data-i18n="">
     </div>
     <div class="form-row">
         <label for="node-input-identifier"><span data-i18n="common.label.identifier"> Command Identifier</span></label>
-        <input type="text" id="node-input-identifier" data-i18n="[placeholder]common.label.identifier">
+        <input type="text" id="node-input-identifier" data-i18n="">
     </div>
     <div class="form-row">
         <label for="node-input-command"><span data-i18n="common.label.command"> Command Code</span></label>
-        <input type="text" id="node-input-command" data-i18n="[placeholder]common.label.command">
+        <input type="text" id="node-input-command" data-i18n="">
     </div>
 </script>
 
@@ -278,7 +278,7 @@
         defaults: {
             name: {value:""},
             command: {value:"", required:true},
-            identifier: {value:"NRCMD:", required:true}
+            identifier: {value:"NRCMD", required:true}
         },
         inputs: 1,
         outputs: 1,
@@ -367,7 +367,7 @@
             name: {value:""},
             interval: {value:"0"},
             delta: {value:"0"},
-            modelPath: {value:"", required:true},
+            modelPath: {value: null, required:true},
             outputs: {value:1}
         },
         inputs: 1,
@@ -392,6 +392,3 @@
         outputLabels: "Event Out"
     });
 </script>
-
-
-
