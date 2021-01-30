@@ -6,7 +6,10 @@ NodeDSF - This is the main page and also provides the sidebar menu. Edit this to
 
 NodeDSFHome - The NodeDSF basic HTML home page.
 
-They rely on the 3rd party uiBuilder node. Once the flow is deployed then copy the uiBuilder code sets into the appropriate directory in your node-red folder.
+Relys on the 3rd party uiBuilder node.   
+
+Once the flow is deployed in node-red, copy the uiBuilder code sets into the appropriate directory in your node-red folder.  
+
 Typically this is
 
     /home/pi/.node-red/uibuilder/[node name]
