@@ -1,4 +1,4 @@
-These flows demostrate how to create HTML based interfaces for Node-DSF's optional plugin.
+These flows demonstrate how to create HTML based interfaces for Node-DSF's optional plugin.
 
 2 Nodes are added:
 
