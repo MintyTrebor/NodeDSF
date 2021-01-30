@@ -1,7 +1,8 @@
 {
     "name": "node-red-contrib-NodeDSF",
     "version": "0.0.1",
-    "description": "A node for working with DSF",
+    "description": "Nodes for working with DSF",
+    "keywords": [ "node-red" ],
     "dependencies": {
 		"axios": "^0.21.1",
         "deepmerge": "^4.2.2",
