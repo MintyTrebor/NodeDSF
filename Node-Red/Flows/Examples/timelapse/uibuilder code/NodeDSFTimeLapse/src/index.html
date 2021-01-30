@@ -1,0 +1,145 @@
+<!doctype html>
+<!-- Note that adding an appcache really speeds things up after the first load
+    You need to amend the appcache file to meet your needs.
+    Don't forget to change the appcache file if you update ANY
+    of the files in it otherwise the old versions will ALWAYS be used.
+<html lang="en" manifest="./uibuilder.appcache">
+-->
+<html lang="en">
+<!--
+    This is the default, template html for uibuilder.
+    It is meant to demonstrate the use of VueJS & bootstrap-vue to dynamically
+    update the ui based on incoming/outgoing messages from/to the
+    Node-RED server.
+-->
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>NodeDSF Time-Lapse</title>
+    <meta name="description" content="Node-RED UI Builder - VueJS + bootstrap-vue default template">
+
+    <link rel="icon" href="./images/node-blue.ico">
+
+    <link type="text/css" rel="stylesheet" href="../uibuilder/vendor/bootstrap/dist/css/bootstrap.min.css" />
+    <link type="text/css" rel="stylesheet" href="../uibuilder/vendor/bootstrap-vue/dist/bootstrap-vue.css" />
+    <!-- Your own CSS -->
+    <link type="text/css" rel="stylesheet" href="./index.css" media="all">
+
+</head><body style="background-color: var(--dark);">
+
+    <div id="app" v-cloak>
+        <b-container id="app_container">
+            <div class="container" style="background-color: var(--dark);/*height: 200px;*/">
+                <div style="width: 100%;">
+                    <div class="row">
+                        <div class="col" style="width: 100%;">
+                            <div style="width: 100%;text-align: center;">
+                                <h1 style="text-align: center;color: var(--blue);"><strong>Time-Lapse&nbsp;Settings</strong></h1>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="container" style="width: 700px;">
+                <div class="row">
+                    <div class="col col-4" style="top: 15px;"><label class="col-form-label tlLabel" style="color: white;">Web Cam Snap Shot URL</label></div>
+                    <div class="col" style="top: 15px;"><b-form-input v-model="camURL" v- class="tlInput" style="width: 100%;"></b-form-input></div>
+                </div>
+                <div class="row">
+                    <div class="col col-4" style="width: 15%;top: 15px;"><label class="col-form-label" style="color: white;">Path to store images</label></div>
+                    <div class="col" style="width: 15%;top: 15px;"><b-form-input v-model="imgPath" class="tlInput" style="width: 100%;"></b-form-input></div>
+                </div>
+                <div class="row">
+                    <div class="col col-4" style="width: 15%;top: 15px;"><label class="col-form-label" style="color: white;">Path to store videos</label></div>
+                    <div class="col" style="width: 15%;top: 15px;"><b-form-input v-model="vidPath" class="tlInput" style="width: 100%;"></b-form-input></div>
+                </div>
+                <div class="row">
+                    <div class="col col-4" style="width: 15%;top: 15px;"><label class="col-form-label" style="color: white;">ffmpeg path</label></div>
+                    <div class="col" style="width: 15%;top: 15px;"><b-form-input v-model="ffmpegPath" class="tlInput" style="width: 100%;"></b-form-input></div>
+                </div>
+            </div>
+            <div class="container" style="width: 200px;text-align: center;height: 100px;">
+                <div class="col" style="vertical-align: middle;top: 30px;"><b-button id="tlSave" pill variant="primary" v-on:click="tlsave" style="vertical-align: middle;top: 50px;">Save</b-button></div>
+            </div>
+        </b-container>
+        <div style="text-align: center;"><h1 style="color: var(--blue); text-align: center; font-size: 20px;">Slicer Settings</h1></div>
+        <div style="color: white; text-align: center;">
+            To enable Timelapse enter the following command into your slicers start g-code:
+        </div>
+        <div style="text-align: center; color: cyan">
+            M291 P"Reset File Counter" R"NRCMD"
+        </div>
+        <div style="color: white; text-align: center;">
+            To take a photo at every layer change, enter the following command into your slicers before layer change g-code:
+        </div>
+        <div style="text-align: center; color: cyan">
+            M291 P"SnapShot Me" R"NRCMD"
+        </div>
+        <div style="color: white; text-align: center;">
+            To start the video conversion at the end of a job, enter the following command into your slicers end gcode:
+        </div>
+        <div style="text-align: center; color: cyan">
+            M291 P"Convert To Video" R"NRCMD"
+        </div>
+        <div style="color: white; text-align: center;">
+            <span style="color: red">NOTE:</span> Image & Video folder paths must end in <span style="color: cyan">/</span>
+        </div>
+        <br>
+        <div>
+            <div style="text-align: center;"><h1 style="color: var(--blue); text-align: center; font-size: 20px;">Example 'before layer change' g-code</h1></div>
+            <div style="color: white; text-align: center;">
+                The g-code below shows a basic set of instructions for a cartesian style 3d Printer:
+            </div>
+            <div style="text-align: center; height: 80%;">
+                <b-container style="width: 300px;">
+                    <div style="width: 300px; text-align: left; height: 80%; color: cyan;">
+                        G60 R1                        ; Save Current Co-ords to slot 1<br>
+                        M83                           ; Relative Moves<br>
+                        G91                           ; Relative positioning <br>                
+                        G1 Z5 F360                    ; lift Z by 5mm<br>
+                        G90                           ; absolute positioning<br>
+                        G1 X0 Y100 F6000              ; go to X=0 Y=100<br>
+                        G4 S1                         ; wait 2 secs<br>
+                        M291 P"SnapShot Me" R"NRCMD"  ; snd command to NodeDSF & wait for reply<br>
+                        G4 S2                         ; wait 2 secs<br>
+                        G1 R1 X0 Y0                   ; go back to the last print move stored in slot 1<br>
+                        M83                           ; relative extruder moves<br>
+                    </div>
+                </b-container>
+            </div>
+            <div style="color: white; text-align: center;">
+                You will need to adapt these to suit your printer and to control things like ooze etc.
+            </div>
+            <div style="color: white; text-align: center;">
+                To enable automatic video creation, install ffmpeg on your r-pi by running the following from a terminal/ssh session:
+            </div>
+            <div style="color: white; text-align: center; color: cyan;">
+                sudo apt-get install ffmpeg
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/bootstrap/js/bootstrap.min.js"></script>
+    <!-- Dont forget to use minified versions of libraries for production, non-min versions for development only -->
+    <!-- These MUST be in the right order. Note no leading / -->
+
+    <!-- REQUIRED: Socket.IO is loaded only once for all instances. Without this, you don't get a websocket connection -->
+    <script src="../uibuilder/vendor/socket.io/socket.io.js"></script>
+
+    <!-- --- Vendor Libraries - Load in the right order --- -->
+    <script src="../uibuilder/vendor/vue/dist/vue.js"></script> <!-- dev version with component compiler -->
+    <!-- <script src="../uibuilder/vendor/vue/dist/vue.min.js"></script>   prod version with component compiler -->
+    <!-- <script src="../uibuilder/vendor/vue/dist/vue.runtime.min.js"></script>   prod version without component compiler -->
+    <script src="../uibuilder/vendor/bootstrap-vue/dist/bootstrap-vue.js"></script>
+
+    <!-- REQUIRED: Sets up Socket listeners and the msg object -->
+    <script src="./uibuilderfe.js"></script> <!-- dev version -->
+    <!-- <script src="./uibuilderfe.min.js"></script>     //prod version -->
+
+    <!-- OPTIONAL: You probably want this. Put your custom code here -->
+    <script src="./index.js"></script>
+
+</body></html>
