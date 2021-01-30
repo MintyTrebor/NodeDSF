@@ -41,7 +41,8 @@
 	.url-container {
 		opacity: 1;
 		position:relative;
-		width: 100%;
+		float: right;
+		width: 70%;
 		display: none;
 		background-color: var(--dark);
 		top: 1px;
@@ -59,7 +60,7 @@
 	.settings-urlinput {
 		top: 5px;
 		position:relative;
-		width: 50%;
+		width: 20%;
 		border: 1px solid #818181;
 		background-color: var(--dark);
 		color: #818181;		
@@ -77,7 +78,7 @@
     <div id="primarycontainer" ref="primarycontainer" class="primary-container mt-2" v-resize="resize">
         <div id="settings-container" class="settings-container">
 			<div id="urlContainer" class="url-container">
-				<label class="settings-label">NodeDSF URL: </label>
+				<label id="labelSafeURL" class="settings-label">NodeDSF URL: </label>
 				<input id="NodeDSF_URL" type="text" value="" class="settings-urlinput">
 				<v-btn @click="urlSave" id= "settings-urlsave" class="settings-button">Save</v-btn>
 				<v-btn @click="urlCancel" id= "settings-urlcancel" class="settings-button">Cancel</v-btn>
@@ -86,7 +87,7 @@
 				<v-btn @click="showSettings" id="settings-button" class="settings-button">Settings</v-btn>
 			</div>
 		</div>
-		<iframe class="NodeIFrame" id="NodeIFrame" ref="NodeIFrame" src ="#" scrolling="no" frameborder="0" allowtransparency="true" width=auto height=auto></iframe>
+		<iframe class="NodeIFrame" id="NodeIFrame" ref="NodeIFrame" src ="" scrolling="no" frameborder="0" allowtransparency="true" width=auto height=auto></iframe>
     </div>
 </template>
 
@@ -111,12 +112,15 @@ export default {
 			});
 		});
 		this.loadSettings();
-		document.getElementById('NodeIFrame').src = document.getElementById('NodeDSF_URL').value;
+		let safeurl = "http://" + window.location.hostname + ":1880/";
+		document.getElementById('NodeIFrame').src = safeurl + document.getElementById('NodeDSF_URL').value;
 		viewer.resize();
 	},
 
 	methods: {
 		resize() {
+			let safeurl = "http://" + window.location.hostname + ":1880/";
+			document.getElementById("labelSafeURL").innerText = "NodeDSF URL: " + safeurl;
 			let contentArea = getComputedStyle(document.getElementsByClassName('v-toolbar__content')[0]);
 			let globalContainer = getComputedStyle(document.getElementById('global-container'));
 			let primaryContainer = getComputedStyle(this.$refs.primarycontainer);
@@ -149,13 +153,15 @@ export default {
 			let urlString = localStorage.getItem('NodeDSFsettings');
 			if (urlString) {
 				document.getElementById('NodeDSF_URL').value = JSON.parse(urlString);
+				//document.getElementById('NodeDSF_URL').value = JSON.parse(urlString);
 			} else {
-				document.getElementById('NodeDSF_URL').value = '#';
+				document.getElementById('NodeDSF_URL').value = '';
 			}
 		},
 		saveSettings() {
+			let safeurl = "http://" + window.location.hostname + ":1880/";
 			localStorage.setItem('NodeDSFsettings', JSON.stringify(document.getElementById('NodeDSF_URL').value));
-			document.getElementById('NodeIFrame').src = document.getElementById('NodeDSF_URL').value;
+			document.getElementById('NodeIFrame').src = safeurl + document.getElementById('NodeDSF_URL').value;
 			viewer.resize();
 		},
 	},
