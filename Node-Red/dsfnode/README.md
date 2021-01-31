@@ -18,3 +18,7 @@ The Machine Model is a JSON object representing the current state of the Machine
  - **dsf-command**: Send a g-code or m-code command to DSF for action.
 
 dsfnode is part of a project called NodeDSF which includes a DSF plugin for DWC, plus example Node-Red flows and dashboards. Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for detailed instructions on usage, and example flows.
+
+To install the dsfnodes in node red, please use the palette manager in the node-red interface, or run the following command in your .node-red directory.
+
+npm install node-red-contrib-dsfnode
