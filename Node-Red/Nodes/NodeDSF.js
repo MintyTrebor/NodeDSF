@@ -202,7 +202,9 @@ module.exports = function(RED) {
                         msg = {
                             topic:"dsfModel", 
                             payload: {
-                                fullModel: JSON.parse(data)
+                                fullModel: JSON.parse(data),
+                                patchModel: null,
+                                prevModel: null
                             }
                         };
                         node.send(msg);
