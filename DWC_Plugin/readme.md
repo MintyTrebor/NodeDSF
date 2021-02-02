@@ -1,4 +1,4 @@
-# This is the source code for the optional DWC PLugin
+# This is the source code for the optional DWC Plugin
 
 Download the latest NodeDSF_Plugin.zip from the releases section, and upload it to DWC through the Upload System Files function. Confirm you wish to install the plugin and then navigate to Machine Settings -> Plugins to activate the NodeDSF Plugin.
 
