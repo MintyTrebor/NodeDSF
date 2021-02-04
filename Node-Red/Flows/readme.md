@@ -1,1 +1,1 @@
-Here you will find Node-Red flows for use with NodeDSF
+Here you will find Node-Red flows for use with NodeDSF. Please review the wiki for [node-red installtion](https://github.com/MintyTrebor/NodeDSF/wiki/Installing-Node-Red), and [guidence about the examples](https://github.com/MintyTrebor/NodeDSF/wiki/Example-Flows). 
