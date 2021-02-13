@@ -1,3 +1,5 @@
+const { SSL_OP_EPHEMERAL_RSA } = require('constants');
+
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -17,6 +19,8 @@ module.exports = function(RED) {
     function dsfConnectorNode(config) {
         RED.nodes.createNode(this,config);
         this.server = config.server;
+        this.btype = config.btype;
+        this.bPollRate = config.bPollRate;
     };
     RED.nodes.registerType("dsf-connector",dsfConnectorNode);
 
@@ -57,7 +61,11 @@ module.exports = function(RED) {
                         if(JSON.stringify(cmdInPatch) != "[]"){
                             var cmdVal = cmdInPatch[0];
                             if (cmdVal == cmdCode){
-                                msg.payload.cmdCode = cmdVal;
+                                if (typeof msg.dsf !== "undefined"){
+                                    msg.dsf.cmdCode = cmdVal;
+                                }else {
+                                    msg.dsf = {cmdCode: cmdVal};
+                                }
                                 node.send(msg); 
                             };
                         };
@@ -120,8 +128,15 @@ module.exports = function(RED) {
                         sndDelta = true;
                     };
                     if (sndDelta && sndInt){
-                        msg.payload.eventValue = matchVal;
-                        msg.payload.lastEventValue = node.lastValue;
+                        if (typeof msg.dsf !== "undefined"){
+                            msg.dsf.eventValue = matchVal;
+                            msg.dsf.lastEventValue = node.lastValue;
+                        } else {
+                            msg.dsf = {
+                                eventValue: matchVal,
+                                lastEventValue: node.lastValue
+                            };
+                        }
                         node.send(msg);
                         node.lastValue = matchVal;
                         node.lastMsgTime = Date.now();
@@ -145,12 +160,79 @@ module.exports = function(RED) {
         this.name = config.name;
         this.server = RED.nodes.getNode(config.server);
         this.wsurl = (`ws://${this.server.server}/machine`);
+        this.duetUrl = (`http://${this.server.server}`);
+        this.autoStart = config.autoStart;
         this.ws = require('ws');
         this.dsfFirstMsg = true;
         this.dsfFullModel = null;
+        this.duetLogin = "/rr_connect?password=reprap&time="; //login info
+        this.duetS0Req = "/rr_status"; //regular update
+        this.duetS1Req = "/rr_status?type=1"; //regular update
+        this.duetS2Req = "/rr_status?type=2"; //extended info update
+        this.duetS3Req = "/rr_status?type=3"; //printing info update
+        this.duetEMReq = "/rr_model"; //empty model
+        this.duetFNReq = "/rr_model?flags=d99fn"; //quick info update
+        this.duetBIReq = "/rr_config"; //board & firmware info
+        this.duetEmptyModel = "";
+        this.nodeRun = true;
+        this.pollRate = this.server.bPollRate;
         var node = this;
         var msg = null;
+        var mergedModel = null;
+        var parsedData = null;
+        var emptyModel = null;
+        var patchModel = null;
+        var quickModel = null;
+        var bHasMsg = false;
+        var timer1 = null;
         const merge = require('deepmerge')
+        const axios = require('axios');
+        const {setIntervalAsync, clearIntervalAsync} = require('set-interval-async/fixed');
+        const cleanDeep = require('clean-deep');
+
+        //validate pollRate
+        if(!isNaN(Number(node.pollRate))){
+            if(Number(node.pollRate) <= 199){node.pollRate = 200};
+            if(Number(node.pollRate) >= 7001){node.pollRate = 7000};
+        } else{
+            //not a number so set to default of 200ms
+            node.pollRate = 200;
+        };
+
+        function diff(obj1, obj2) {
+            const result = {};
+            if (Object.is(obj1, obj2)) {
+                return undefined;
+            }
+            if (!obj2 || typeof obj2 !== 'object') {
+                return obj2;
+            }
+            Object.keys(obj1 || {}).concat(Object.keys(obj2 || {})).forEach(key => {
+                if(obj2[key] !== obj1[key] && !Object.is(obj1[key], obj2[key])) {
+                    result[key] = obj2[key];
+                }
+                if(typeof obj2[key] === 'object' && typeof obj1[key] === 'object') {
+                    const value = diff(obj1[key], obj2[key]);
+                    if (value !== undefined) {
+                        if (value != null && value != ''){
+                            result[key] = value;
+                        }
+                    }
+                }
+            });
+            return result;
+        }
+        
+        var timeToStr = function (time) {
+            let result = "";
+            result += time.getFullYear() + "-";
+            result += (time.getMonth() + 1) + "-";
+            result += time.getDate() + "T";
+            result += time.getHours() + ":";
+            result += time.getMinutes() + ":";
+            result += time.getSeconds();
+            return result;
+        };
         
         const combineMerge = (target, source, options) => {
             const destination = target.slice()
@@ -167,45 +249,57 @@ module.exports = function(RED) {
             return destination
         };
 
-        if (node.server) {
-            var restartWS = function() {
-                msg = null;
-                msg = {topic:"dsfModel", payload: "No server defined or cannot connect. Checking again in 10 seconds"};
-                node.send(msg);
-            };
-            
-            var setupDSFws = function() {                
-                try{
+        var restartWS = function() {
+            msg = null;
+            msg = {topic:"dsf-monitor", payload: "No server defined or cannot connect to DSF. Checking again in 10 seconds"};
+            node.send(msg);
+        };
+        
+        var setupDSFws = function() {                
+            try{
+                if(node.nodeRun){
                     node.dsfWS = new node.ws(node.wsurl);
                 }
-                catch(e){
-                    restartWS();
+            }
+            catch(e){
+                restartWS();
+                if(node.nodeRun){
                     setTimeout(() => {  setupDSFws(); }, 10000);
-                }
-                
-                node.dsfWS.on('error', function (){
-                    restartWS();
+                };
+            }
+            
+            node.dsfWS.on('error', function (){
+                restartWS();
+                if(node.nodeRun){
                     setTimeout(() => {  setupDSFws(); }, 10000);
-                });
-                
-                node.dsfWS.on('open', function open() {
-                    node.dsfWS.send('OK\n');
-                });
+                };
+            });
+            
+            node.dsfWS.on('open', function open() {
+                node.dsfWS.send('OK\n');
+            });
 
-                node.dsfWS.on('message', function incoming(data) {
+            node.dsfWS.on('message', function incoming(data) {
+                if(node.nodeRun){
                     msg = null;
                     var mergedModel = null;
                     var parsedData = null;
                     if(node.dsfFirstMsg){
                         //This is the first model return from dsf, so just output the full model only.
                         node.dsfFullModel = JSON.parse(data);
+                        //add msg keys for use later
+                        node.dsfFullModel.state.messageBox = {
+                            title: null,
+                            message: null
+                        };
                         msg = {
                             topic:"dsfModel", 
                             payload: {
-                                fullModel: JSON.parse(data),
+                                fullModel: node.dsfFullModel,
                                 patchModel: null,
                                 prevModel: null
-                            }
+                            },
+                            dsf: {monitorMode: "DSF"}
                         };
                         node.send(msg);
                         node.dsfWS.send('OK\n');
@@ -214,30 +308,238 @@ module.exports = function(RED) {
                         //merge the update with the model
                         parsedData = JSON.parse(data);
                         mergedModel = merge(node.dsfFullModel, parsedData, { arrayMerge : combineMerge });                       
+                        //check for msg.timeout if not there then clear any previous msg values (we need this to be statefull to allow for valid consecutive duplicate msg from DSF)
+                        //has to be a try/catch as keys may not always exist
+                        try {
+                            if(typeof parsedData.state !== "undefined") {
+                                if(typeof parsedData.state.messageBox !== "undefined"){
+                                    if(typeof parsedData.state.messageBox.timeout !== "undefined"){
+                                        bHasMsg = true;
+                                    };
+                                };
+                            };
+                            if (bHasMsg == false){
+                                //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values if they exist
+                                if(mergedModel.state.hasOwnProperty('messageBox')){
+                                    mergedModel.state.messageBox = {
+                                        title: null,
+                                        message: null
+                                    };
+                                };
+                            } else {
+                                bHasMsg = false;
+                            };
+                        }
+                        catch {
+                            //do nothing
+                        }                           
                         msg = {
                             topic:"dsfModel", 
                             payload: {
                                 fullModel: mergedModel,
-                                patchModel: JSON.parse(data),
-                                prevModel:  node.dsfFullModel 
-                            }
+                                patchModel: parsedData,
+                                prevModel:  node.dsfFullModel
+                            },
+                            dsf: {monitorMode: "DSF"}
                         };
                         node.send(msg);
                         node.dsfFullModel = mergedModel;
                         mergedModel = null;
                         node.dsfWS.send('OK\n');
                     };
-                });
+                } else {
+                    try{
+                        node.dsfWS.close();
+                    }
+                    catch {
+                        //do nothing
+                    }
+                }
+            });
+        };
+
+        async function duetModel() {
+            msg = null;
+            mergedModel = null;
+            parsedData = null;
+            node.dsfFullModel = null;
+            
+            //This is the first model return from dsf, so just output the full model only.
+            try{
+                let tmpDate = timeToStr(new Date());
+                let [tmpLogin, tmpEmptyModel, tmpBoardInfo, tmpExtdInfo] = await Promise.all([
+                    axios.get(`${node.duetUrl}${node.duetLogin}${tmpDate}`, { headers: {'Content-Type': 'application/json'}}),
+                    axios.get(`${node.duetUrl}${node.duetEMReq}`, { headers: {'Content-Type': 'application/json'}}),
+                    axios.get(`${node.duetUrl}${node.duetBIReq}`, { headers: {'Content-Type': 'application/json'}}),
+                    axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}})
+                ]);                    
+                mergedModel = tmpEmptyModel.data['result'];
+                node.duetLogin = tmpLogin;
+                //add these 2 null keys for intercept node as not returned as part of model
+                mergedModel.state['messageBox'] = {};
+                mergedModel.state.messageBox['title'] = null;
+                mergedModel.state.messageBox['message'] = null;
+                node.duetEmptyModel = tmpEmptyModel.data['result'];
+                mergedModel.boards[0] = tmpBoardInfo.data;
+                mergedModel = merge(mergedModel, tmpExtdInfo.data['result'], { arrayMerge : combineMerge });
+                node.dsfFullModel = mergedModel;
+                msg = {
+                    topic:"dsfModel", 
+                    payload: {
+                        fullModel: mergedModel,
+                        patchModel: null,
+                        prevModel: null
+                    },
+                    dsf: {monitorMode: "Duet"}
+                };
+                node.dsfFirstMsg = false;
+                node.send(msg);
+                return true;
+            }
+            catch(e){
+                msg = null;
+                msg = {topic:"dsf-monitor", payload: "Error getting data duetModel = " + e.message};
+                node.send(msg);
+                return false;
+            }
+        }; 
+            
+        async function duetPartModel() {
+            mergedModel = null;
+            tmpExtdInfo = null;
+            parsedData = null;
+            quickModel = null;
+            msg = null;
+            emptyModel = null;
+            patchModel = null;
+            if(node.dsfFirstMsg && node.nodeRun){
+                //just a dirty check to ensure we have run the required first step
+                await duetModel();
+            }
+            try{
+                let [tmpExtdInfo, tmpModel] = await Promise.all([
+                    axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
+                    axios.get(`${node.duetUrl}${node.duetS0Req}`, { headers: {'Content-Type': 'application/json'}})
+                ]);
+                mergedModel = tmpExtdInfo.data['result'];
+                quickModel = tmpModel.data;
+                //insert any display messages into model
+                if(quickModel.hasOwnProperty('msgBox.msg')) {
+                    if (!mergedModel.hasOwnProperty('state')) {
+                        mergedModel['state'] = {};
+                    }
+                    if (!mergedModel.state.hasOwnProperty('messageBox')) {
+                        mergedModel['state']['messageBox'] = {};
+                    }
+                    mergedModel['state']['messageBox']['title'] = quickModel['msgBox.title'];
+                    mergedModel['state']['messageBox']['message'] = quickModel['msgBox.msg'];
+                };
+                patchModel = diff(node.dsfFullModel, mergedModel);
+                patchModel = cleanDeep(patchModel);
+                mergedModel = merge(node.dsfFullModel, mergedModel, { arrayMerge : combineMerge });
+                //remove old display msgs after expired    
+                if(!quickModel.hasOwnProperty('msgBox.timeout')) {
+                    //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
+                    mergedModel['state']['messageBox']['title'] = null;
+                    mergedModel['state']['messageBox']['message'] = null; 
+                }    
+                msg = {
+                    topic:"dsfModel", 
+                    payload: {
+                        fullModel: mergedModel,
+                        patchModel: patchModel,
+                        prevModel:  node.dsfFullModel
+                    },
+                    dsf: {monitorMode: "Duet"}
+                };
+                node.dsfFullModel = mergedModel;
+                mergedModel = null;
+                node.send(msg);
+            }
+            catch(e){
+                msg = null;
+                msg = {topic:"dsf-monitor", payload: "No server defined or cannot connect. duetPartModel Error = " + e};
+                node.send(msg);
+            }
+            return true;
+        };
+
+        async function nodeFirstStart() {
+            if (duetModel()){
+                timer1 = setIntervalAsync(function() {
+                    if(node.nodeRun) {
+                        duetPartModel();
+                    };
+                }, Number(node.pollRate));
+            }
+        }
+
+        //run the node
+        if (node.server) {          
+            if(node.autoStart){
+                if(node.server.btype == "DSF"){
+                    setupDSFws();
+                }else if(node.server.btype == "Duet"){
+                    nodeFirstStart();
+                };
             };
-            setupDSFws();
         } else {
             msg = null;
-            msg = {topic:"dsfModel", payload: "no server defined or cannot connect"};
+            msg = {topic:"dsf-monitor", payload: "no server defined or cannot connect"};
             node.send(msg);
         };
+
         node.on('close', function() {
             // close ws
-            node.dsfWS.close()
+            try{
+                node.dsfWS.close();
+                //try to clear async timers just in case
+                try{
+                    clearIntervalAsync(timer1);
+                    timer1 = null;
+                }catch{}
+            }
+            catch {
+                //do nothing
+            }
+        });
+
+        node.on('input', function(msg) {
+            //toggle start/stop of polling
+            try{
+                let toggle = msg.payload.monitorState;
+                if(toggle == "ON"){
+                    node.nodeRun = true;
+                    node.dsfFirstMsg = true;
+                    if(node.server.btype == "DSF"){
+                        setupDSFws();
+                    }
+                    else if(node.server.btype == "Duet"){
+                        if(node.server){
+                            if(node.server.btype == "Duet"){
+                                nodeFirstStart();
+                            };
+                        };
+                    };
+                }
+                else if(toggle == "OFF"){
+                    node.nodeRun = false;
+                    try{
+                        clearIntervalAsync(timer1);
+                        timer1 = null;
+                    }
+                    catch(e){
+                        msg = null;
+                        msg = {topic:"dsf-monitor", payload: "Stop error = " + e};
+                        node.send(msg);
+                    };
+                }
+            }
+            catch(e) {
+                //no msg.payload.monitorState was received so take no action just fwd on the msg for completeness
+                msg.dsf = {monitor: "error = " + e};
+                node.send(msg);
+            }
         });
     };
     RED.nodes.registerType("dsf-monitor", dsfMonitorNode);
@@ -248,13 +550,14 @@ module.exports = function(RED) {
         this.command = n.command;
         this.server = RED.nodes.getNode(n.server);
         this.dsfURL = (`http://${this.server.server}/machine/code/`);
+        this.duetURL = (`http://${this.server.server}/rr_gcode?gcode=`);
         var node = this;
         const axios = require('axios');
 
         
-        var failedCMD = function() {
+        var failedCMD = function(e) {
             msg = null;
-            msg = {topic:"dsfCommand", payload: "No server defined or cannot connect. Command has not been sent!"};
+            msg = {topic:"dsf-command", payload: "No server defined or cannot connect. Command has not been sent! error = " + e};
             node.send(msg);
         };
         
@@ -269,11 +572,28 @@ module.exports = function(RED) {
                 }
                        
                 try{
-                    axios.post(node.dsfURL, strCMD);
-                    node.send(msg);
+                    if(node.server.btype == "DSF"){
+                        axios.post(node.dsfURL, strCMD);
+                        if (typeof msg.dsf !== "undefined"){
+                            msg.dsf.cmdSent = node.dsfURL+strCMD;
+                        } else {
+                            msg.dsf = {cmdSent: node.dsfURL+strCMD};
+                        }
+                        node.send(msg);
+                    }
+                    if(node.server.btype == "Duet"){
+                        axios.get(`${node.duetURL}${strCMD}`, { headers: {'Content-Type': 'application/json'}});
+                        if (typeof msg.dsf !== "undefined"){
+                            msg.dsf.cmdSent = node.duetURL+strCMD;
+                        } else {
+                            msg.dsf = {cmdSent: node.duetURL+strCMD};
+                        }
+                        node.send(msg);
+                    }
+                    
                 }
                 catch(e){
-                    failedCMD();
+                    failedCMD(e);
                 };
             };
         };
@@ -281,6 +601,11 @@ module.exports = function(RED) {
         node.on('input', function(msg) {
             sndCommand(msg);
         });
+        node.on('close', function() {
+            // close ws
+            node.dsfWS.close()
+        });
     };
     RED.nodes.registerType("dsf-command", dsfCommandNode);
+
 }
