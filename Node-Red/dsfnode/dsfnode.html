@@ -54,9 +54,9 @@
          <ol class="node-ports">
              <li>Event Out
                  <dl class="message-properties">
-                     <dt>payload.eventValue <span class="property-type">(varies)</span></dt>
+                     <dt>msg.dsf.eventValue <span class="property-type">(varies)</span></dt>
                      <dd>This object returns the value from the matching Model Path</dd>
-                     <dt>payload.lastEventValue <span class="property-type">(varies)</span></dt>
+                     <dt>msg.dsf.lastEventValue <span class="property-type">(varies)</span></dt>
                      <dd>This object returns the value from the previous matching event</dd>
                  </dl>
              </li>
@@ -90,8 +90,19 @@
 
 <script type="text/html" data-template-name="dsf-connector">
     <div class="form-row">
-        <label for="node-config-input-server"><i class="fa fa-bookmark"></i> DSF SBC IP</label>
-        <input type="text" id="node-config-input-server">
+        <label for="node-config-input-server"><i class="fa fa-bookmark"></i> Duet/DSF IP</label>
+        <input type="text" id="node-config-input-server" style="width: 70%">
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-btype"><i class="fa fa-bookmark"></i> Type</label>
+        <select id="node-config-input-btype" style="width: 70%">
+            <option value="DSF">DSF</option>
+            <option value="Duet">Duet</option>
+        </select> 
+    </div>
+    <div class="form-row">
+        <label for="node-config-input-bPollRate"><i class="fa fa-bookmark"></i> Poll Rate(ms)</label>
+        <input type="number" id="node-config-input-bPollRate" style="width: 70%">
     </div>
 </script>
 
@@ -99,9 +110,14 @@
     <p>Connection details for the SBC running Duet Software Framework</p>
     
     <h3>Details</h3>
-        <p>Enter the IP address of the SBC running DSF - or <code>localhost</code> if Node-Red is running on the same SBC as DSF.
-        </p>
-    
+        <p>Enter the IP address of the Duet Board or SBC running DSF.</p>
+        <p> Choose the type of connection: either <code>Duet</code> or <code>DSF</code></p>
+        <p> For <code>Duet</code> mode you may also specify the polling rate in ms (default 200 = 5 times per second)</p><br>
+        <p> Note: <code>Duet</code> mode is experimental, please review the wiki on github for more information.</p>
+        <p><code>Duet</code> mode should work for Duet v2 & v3 boards running wifi/ethernet without an SBC.
+             This mode aquires a subset of the Machine Model using the same commands as DWC, effectively emulating a browser running DWC.
+             It consumes one of the limited DWC user sessions, which can be a maximum of between 2 or 4 - depending on your setup.
+             If you are running a non Duet board (eg lpc) with 8266 wifi these are normally limited to 1 user session max, so this mode will not work as there are no free sessions available.<p>    
     <h3>References</h3>
         <ul>
             <li><a href="https://github.com/MintyTrebor/NodeDSF">GitHub</a> See the wiki for more information</li>
@@ -114,13 +130,34 @@
         <input type="text" id="node-input-name" data-i18n="">
     </div>
     <div class="form-row">
-        <label for="node-input-server"><i class="fa fa-globe"></i><span data-i18n=""> DSF SBC IP</span></label>
+        <label for="node-input-server"><i class="fa fa-globe"></i><span data-i18n="dsf-command.label.server"> Duet/DSF IP</span></label>
         <input type="text" id="node-input-server" style="width: 70%"/>
+    </div>
+    <div class="form-row">
+        <label for="node-input-autoStart"><span data-i18n="dsf-command.label.autoStart"> Auto Start</span></label>
+        <input type="checkbox" id="node-input-autoStart" value="true">
     </div>
 </script>
 
 <script type="text/html" data-help-name="dsf-monitor">
     <p>Connects to an SBC running Duet Software Framework</p>
+    
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt>Auto Start
+            <span class="property-type"> CheckBox</span>
+        </dt>
+        <dd> Set the monitor to autostart polling for information at boot/deployment</dd>
+    </dl>
+    <ol class="node-ports">
+        <li>Monitor In
+            <dl class="message-properties">
+                <dt>payload.monitorState <span class="property-type"> String</span></dt>
+                <dd>Set to <code>ON</code> or <code>OFF</code> to start/stop the node from polling DSF/Duet. Useful in scenarios where monitoring is not required 24/7. (EG. control by Start/Stop buttons on a dashboard)</dd>
+            </dl>
+        </li>
+    </ol>
+
     
     <h3>Outputs</h3>
          <ol class="node-ports">
@@ -137,17 +174,20 @@
                     <dt>payload.prevModel <span class="property-type">JSON Object</span></dt>
                     <dd>This object contains the previous full model before the latest patch update. Use this to compare current to previous versions of the model.</dd>
                 </dl>
+                <dl class="message-properties">
+                    <dt>msg.dsf.monitorMode <span class="property-type">String</span></dt>
+                    <dd>Specifies the mode the monitor is operating in : <code>Duet</code> or <code>DSF</code> depending on the specified <code>Duet/DSF IP</code> parameters</dd>
+                </dl>
              </li>
          </ol>
     
     <h3>Details</h3>
-        <p>This is the main dsfnode node, providing the connection to Duet Software Framework running on an SBC.
-            Specify the ip address of the SBC server running DSF in 'DSF SBC IP' 
-            (or use localhost if node-red is installed on the same SBC as DSF).
-            Only 1 Monitor node should be deployed per DSF server, to avoid creating too many connections.
+        <p>This is the main dsfnode node, providing the connection to a Duet Board or Duet Software Framework running on an SBC.</p><br>
+        <p>Specify the ip address of the Duet Board or SBC server running DSF in <code>Duet/DSF IP</code> 
+            (or use localhost if node-red is installed on the same SBC as DSF).</p><br>
+        <p>Only 1 Monitor node should be deployed per Duet Board/DSF server, to avoid creating too many sessions (they are limited!!).
             A single monitor node can provide DSF updates to any other flows using the 
-            'Link In' & 'Link Out' standard nodes.
-        </p>
+            'Link In' & 'Link Out' standard nodes.</p>
     
     <h3>References</h3>
         <ul>
@@ -161,7 +201,7 @@
         <input type="text" id="node-input-name" data-i18n="">
     </div>
     <div class="form-row">
-        <label for="node-input-server"><i class="fa fa-globe"></i><span data-i18n="dsf-command.label.server"> DSF SBC IP</span></label>
+        <label for="node-input-server"><i class="fa fa-globe"></i><span data-i18n="dsf-command.label.server"> Duet/DSF IP</span></label>
         <input type="text" id="node-input-server" style="width: 70%"/>
     </div>
     <div class="form-row">
@@ -190,8 +230,9 @@
     </ol>
 
 <h3>Details</h3>
-   <p>Use this node to send a command to DSF. The node is not stateful and cannot check for a response.</p>
+   <p>Use this node to send a command to Duet/DSF. The node is not stateful and cannot check for a response.</p>
    <p>The output will passthrough the incoming msg object, after sending the command.</p>
+   <p>Choose where to send the command by selecting the Duet Board / SBC running DSF in <code>Duet/DSF IP</code></p>
     
     
     <h3>References</h3>
@@ -240,7 +281,7 @@
          </ol>
     
     <h3>Details</h3>
-        <p>Use this node to watch for specially constructed M291 event from DSF. For example, to trigger an action in Node-Red when there is a layer change
+        <p>Use this node to watch for specially constructed M291 event from Duet/DSF. For example, to trigger an action in Node-Red when there is a layer change
             in a job, you can place an M291 code into your slicers 'on before layer change gcode'. Adding <code>M291 P"Layer Change" R"NRCMD"</code> to your
             g-code, and setting the 'Command Identifier' to <code>NRCMD</code> and 'Command Code' to <code>Layer Change</code>, will allow this node to
             interecpt the message sent by the M291 code when the layer changes.
@@ -263,12 +304,16 @@
         category: 'config',
         defaults: {
             server: {value:"localhost",required:true},
+            btype: {value:"DSF",required:true},
+            bPollRate: {value:200, required:false},
         },
         label: function() {
             return this.server;
+            return this.btype;
+            return this.bPollRate;
         },
         paletteLabel: function() {
-            return "DSF Event";
+            return "DSF / Duet Connector";
         }
     });
 
@@ -308,8 +353,9 @@
         defaults: {
             name: {value:"DSF Monitor"},
             server: {value:"", type:"dsf-connector", required:true},
+            autoStart: {value: "true"},
         },
-        inputs:0,
+        inputs:1,
         outputs:1,
         icon: "font-awesome/fa-eye",
         label: function() {
@@ -327,6 +373,7 @@
         paletteLabel: function() {
             return "DSF Monitor";
         },
+        inputLabels: "Monitor Input",
         outputLabels: "Model Out"
     });
 
