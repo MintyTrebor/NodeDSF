@@ -1,15 +1,17 @@
 {
   "name": "node-red-contrib-dsfnode",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A set of nodes for working with the Duet Software Framework running on an SBC",
   "keywords": [
     "node-red"
   ],
   "dependencies": {
     "axios": "^0.21.1",
+    "clean-deep": "^3.4.0",
     "deepmerge": "^4.2.2",
     "http": "^0.0.1-security",
     "jsonpath": "^1.1.0",
+    "set-interval-async": "^1.0.34",
     "ws": "^7.4.2"
   },
   "node-red": {
