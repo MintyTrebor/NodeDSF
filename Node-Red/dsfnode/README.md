@@ -1,7 +1,7 @@
 # dsfnode
 dsfnode is a set of nodes which enable Node-Red to interface with the [Duet Software Framework](https://github.com/Duet3D/DuetSoftwareFramework) (v3+) running on an SBC.
 
-**NEW V1.1 Experimental Duet mode - Now dsfnode can connect to standalone Duet v2 & Duet v3 control boards running firmware v3+)**
+**NEW V1.1 Experimental Duet mode - Now dsfnode can connect to standalone Duet v2 & Duet v3 control boards running firmware (v3+)**
 
 The Duet Software Framework (DSF) is part of a suite of software components (from [Duet3d](https://www.duet3d.com/)) that manage control boards running [RepRap](https://reprap.org/wiki/RepRap) firmware, which execute g-code to operate a physical machine. This is typically used by 3d Printers, CNC machines etc..
 
