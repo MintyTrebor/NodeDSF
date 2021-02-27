@@ -104,6 +104,10 @@
         <label for="node-config-input-bPollRate"><i class="fa fa-bookmark"></i> Poll Rate(ms)</label>
         <input type="number" id="node-config-input-bPollRate" style="width: 70%">
     </div>
+    <div class="form-row">
+        <label for="node-config-input-plainPass"><i class="fa fa-tag"></i> Password</label>
+        <input type="text" id="node-config-input-plainPass">
+    </div>
 </script>
 
 <script type="text/html" data-help-name="dsf-connector">
@@ -112,7 +116,8 @@
     <h3>Details</h3>
         <p>Enter the IP address of the Duet Board or SBC running DSF.</p>
         <p> Choose the type of connection: either <code>Duet</code> or <code>DSF</code></p>
-        <p> For <code>Duet</code> mode you may also specify the polling rate in ms (default 200 = 5 times per second)</p><br>
+        <p> For <code>Duet</code> mode you may also specify the polling rate in ms (default 200 = 5 times per second)</p>
+        <p> <code>Password</code> is required if you have set the password using the M551 (Note: this is not secured as it is sent in the clear as per Duet design)</p><br>
         <p> Note: <code>Duet</code> mode is experimental, please review the wiki on github for more information.</p>
         <p><code>Duet</code> mode should work for Duet v2 & v3 boards running wifi/ethernet without an SBC.
              This mode aquires a subset of the Machine Model using the same commands as DWC, effectively emulating a browser running DWC.
@@ -306,11 +311,13 @@
             server: {value:"localhost",required:true},
             btype: {value:"DSF",required:true},
             bPollRate: {value:200, required:false},
+            plainPass: {value:"reprap", required:false},
         },
         label: function() {
             return this.server;
             return this.btype;
             return this.bPollRate;
+            return this.plainPass;
         },
         paletteLabel: function() {
             return "DSF / Duet Connector";
