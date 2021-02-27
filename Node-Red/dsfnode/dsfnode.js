@@ -21,6 +21,7 @@ module.exports = function(RED) {
         this.server = config.server;
         this.btype = config.btype;
         this.bPollRate = config.bPollRate;
+        this.plainPass = config.plainPass;
     };
     RED.nodes.registerType("dsf-connector",dsfConnectorNode);
 
@@ -38,40 +39,44 @@ module.exports = function(RED) {
             var cmdId = null;
             var cmdCode = null;
             
-            if (typeof msg.payload.cmdIdentifier !== "undefined"){
-                cmdId = msg.payload.cmdIdentifier;
-            } else {
-                cmdId = node.identifier;
-            }
+            try{
+                if (typeof msg.payload.cmdIdentifier !== "undefined"){
+                    cmdId = msg.payload.cmdIdentifier;
+                } else {
+                    cmdId = node.identifier;
+                }
 
-            if (typeof msg.payload.cmdCode !== "undefined"){
-                cmdCode = msg.payload.cmdCode;
-            } else {
-                cmdCode = node.command;
-            }
+                if (typeof msg.payload.cmdCode !== "undefined"){
+                    cmdCode = msg.payload.cmdCode;
+                } else {
+                    cmdCode = node.command;
+                }
 
-            var patchJSON = msg.payload.patchModel;
-            if(patchJSON){
-                var matchInPatch = jp2.query(patchJSON, (`$.${node.msgBoxTitlePath}`));
-                if(JSON.stringify(matchInPatch) != "[]"){
-                    var matchVal = matchInPatch[0];
-                    if (matchVal == cmdId){
-                        //this is a command msg 
-                        var cmdInPatch = jp2.query(patchJSON, (`$.${node.msgBoxMsgPath}`));
-                        if(JSON.stringify(cmdInPatch) != "[]"){
-                            var cmdVal = cmdInPatch[0];
-                            if (cmdVal == cmdCode){
-                                if (typeof msg.dsf !== "undefined"){
-                                    msg.dsf.cmdCode = cmdVal;
-                                }else {
-                                    msg.dsf = {cmdCode: cmdVal};
-                                }
-                                node.send(msg); 
+                var patchJSON = msg.payload.patchModel;
+                if(patchJSON){
+                    var matchInPatch = jp2.query(patchJSON, (`$.${node.msgBoxTitlePath}`));
+                    if(JSON.stringify(matchInPatch) != "[]"){
+                        var matchVal = matchInPatch[0];
+                        if (matchVal == cmdId){
+                            //this is a command msg 
+                            var cmdInPatch = jp2.query(patchJSON, (`$.${node.msgBoxMsgPath}`));
+                            if(JSON.stringify(cmdInPatch) != "[]"){
+                                var cmdVal = cmdInPatch[0];
+                                if (cmdVal == cmdCode){
+                                    if (typeof msg.dsf !== "undefined"){
+                                        msg.dsf.cmdCode = cmdVal;
+                                    }else {
+                                        msg.dsf = {cmdCode: cmdVal};
+                                    }
+                                    node.send(msg); 
+                                };
                             };
                         };
                     };
                 };
-            };
+            } catch {
+                //do nothing - here in case a non compliant msg is received
+            }
         };
 
         node.on('input', function(msg) {
@@ -101,51 +106,55 @@ module.exports = function(RED) {
         };
         
         var processMessage = function(msg) {
-            var patchJSON = msg.payload.patchModel;
-            if(patchJSON){
-                var matchInPatch = jp.query(patchJSON, (`$.${node.modelPath}`));
-                if(JSON.stringify(matchInPatch) != "[]"){
-                    var matchVal = matchInPatch[0];
-                    //we have a match so check if other conditions are met.
-                    //check if interval condition is met
-                    if(Number(node.interval) > 0 && node.lastMsgTime > 0){
-                        var currTime = Date.now();
-                        var millInt = (Number(node.interval) * 1000);
-                        var millTarget = (node.lastMsgTime + millInt);
-                        if (currTime >= millTarget){
+            try{
+                var patchJSON = msg.payload.patchModel;
+                if(patchJSON){
+                    var matchInPatch = jp.query(patchJSON, (`$.${node.modelPath}`));
+                    if(JSON.stringify(matchInPatch) != "[]"){
+                        var matchVal = matchInPatch[0];
+                        //we have a match so check if other conditions are met.
+                        //check if interval condition is met
+                        if(Number(node.interval) > 0 && node.lastMsgTime > 0){
+                            var currTime = Date.now();
+                            var millInt = (Number(node.interval) * 1000);
+                            var millTarget = (node.lastMsgTime + millInt);
+                            if (currTime >= millTarget){
+                                sndInt = true;
+                            }
+                        } else {
                             sndInt = true;
-                        }
-                    } else {
-                        sndInt = true;
-                    };
-                    //check if delta condition is met
-                    if(Number(node.delta) > 0 && !(isNaN(Number(matchVal)))) {
-                        currDiff = diff(Number(matchVal), Number(node.lastValue));
-                        if (currDiff >= Number(node.delta)){
+                        };
+                        //check if delta condition is met
+                        if(Number(node.delta) > 0 && !(isNaN(Number(matchVal)))) {
+                            currDiff = diff(Number(matchVal), Number(node.lastValue));
+                            if (currDiff >= Number(node.delta)){
+                                sndDelta = true;
+                            };
+                        } else {
                             sndDelta = true;
                         };
-                    } else {
-                        sndDelta = true;
+                        if (sndDelta && sndInt){
+                            if (typeof msg.dsf !== "undefined"){
+                                msg.dsf.eventValue = matchVal;
+                                msg.dsf.lastEventValue = node.lastValue;
+                            } else {
+                                msg.dsf = {
+                                    eventValue: matchVal,
+                                    lastEventValue: node.lastValue
+                                };
+                            }
+                            node.send(msg);
+                            node.lastValue = matchVal;
+                            node.lastMsgTime = Date.now();
+                        };    
+                        sndDelta = false;
+                        sndInt = false;
+                        currDiff = null;
                     };
-                    if (sndDelta && sndInt){
-                        if (typeof msg.dsf !== "undefined"){
-                            msg.dsf.eventValue = matchVal;
-                            msg.dsf.lastEventValue = node.lastValue;
-                        } else {
-                            msg.dsf = {
-                                eventValue: matchVal,
-                                lastEventValue: node.lastValue
-                            };
-                        }
-                        node.send(msg);
-                        node.lastValue = matchVal;
-                        node.lastMsgTime = Date.now();
-                    };    
-                    sndDelta = false;
-                    sndInt = false;
-                    currDiff = null;
                 };
-            };
+            } catch{
+                //do nothing - here in case a non compliant msg is received
+            }
         };
         
         node.on('input', function(msg) {
@@ -159,13 +168,16 @@ module.exports = function(RED) {
         RED.nodes.createNode(this, config);
         this.name = config.name;
         this.server = RED.nodes.getNode(config.server);
+        this.password = this.server.plainPass;
         this.wsurl = (`ws://${this.server.server}/machine`);
         this.duetUrl = (`http://${this.server.server}`);
+        this.duetLogoff = (`http://${this.server.server}/rr_disconnect`);
         this.autoStart = config.autoStart;
         this.ws = require('ws');
         this.dsfFirstMsg = true;
         this.dsfFullModel = null;
-        this.duetLogin = "/rr_connect?password=reprap&time="; //login info
+        if(!this.password || this.password === "") {this.password = "reprap"};
+        this.duetLogin = (`/rr_connect?password=${this.password}&time=`); //login info
         this.duetS0Req = "/rr_status"; //regular update
         this.duetS1Req = "/rr_status?type=1"; //regular update
         this.duetS2Req = "/rr_status?type=2"; //extended info update
@@ -199,6 +211,18 @@ module.exports = function(RED) {
             node.pollRate = 200;
         };
 
+        var failedLogin = function(e, monMode) {
+            msg = {
+                topic:"dsfModel", 
+                payload: null,
+                dsf: {
+                    monitorMode: monMode,
+                    monitorError: "ERROR: Reason = " + e
+                }
+            };
+            node.send(msg);
+        };
+
         function diff(obj1, obj2) {
             const result = {};
             if (Object.is(obj1, obj2)) {
@@ -221,7 +245,7 @@ module.exports = function(RED) {
                 }
             });
             return result;
-        }
+        };
         
         var timeToStr = function (time) {
             let result = "";
@@ -251,7 +275,7 @@ module.exports = function(RED) {
 
         var restartWS = function() {
             msg = null;
-            msg = {topic:"dsf-monitor", payload: "No server defined or cannot connect to DSF. Checking again in 10 seconds"};
+            msg.dsf = {monitorError: "No server defined or cannot connect to DSF. Checking again in 10 seconds"};
             node.send(msg);
         };
         
@@ -367,39 +391,53 @@ module.exports = function(RED) {
             //This is the first model return from dsf, so just output the full model only.
             try{
                 let tmpDate = timeToStr(new Date());
-                let [tmpLogin, tmpEmptyModel, tmpBoardInfo, tmpExtdInfo] = await Promise.all([
-                    axios.get(`${node.duetUrl}${node.duetLogin}${tmpDate}`, { headers: {'Content-Type': 'application/json'}}),
-                    axios.get(`${node.duetUrl}${node.duetEMReq}`, { headers: {'Content-Type': 'application/json'}}),
-                    axios.get(`${node.duetUrl}${node.duetBIReq}`, { headers: {'Content-Type': 'application/json'}}),
-                    axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}})
-                ]);                    
-                mergedModel = tmpEmptyModel.data['result'];
-                node.duetLogin = tmpLogin;
-                //add these 2 null keys for intercept node as not returned as part of model
-                mergedModel.state['messageBox'] = {};
-                mergedModel.state.messageBox['title'] = null;
-                mergedModel.state.messageBox['message'] = null;
-                node.duetEmptyModel = tmpEmptyModel.data['result'];
-                mergedModel.boards[0] = tmpBoardInfo.data;
-                mergedModel = merge(mergedModel, tmpExtdInfo.data['result'], { arrayMerge : combineMerge });
-                node.dsfFullModel = mergedModel;
-                msg = {
-                    topic:"dsfModel", 
-                    payload: {
-                        fullModel: mergedModel,
-                        patchModel: null,
-                        prevModel: null
-                    },
-                    dsf: {monitorMode: "Duet"}
+                let [tmpLogin] = await Promise.all([
+                    axios.get(`${node.duetUrl}${node.duetLogin}${tmpDate}`, { headers: {'Content-Type': 'application/json'}})
+                ]);
+                let tmpLogErr = tmpLogin.data['err'];
+                if (tmpLogErr != 0){
+                    if (tmpLogErr == 1) {
+                        failedLogin("Invalid Password", "Duet");
+                        return false;
+                    } else {
+                        failedLogin("No Available User Sessions", "Duet");
+                        return false;
+                    }
+                } else{
+
+                    let [tmpEmptyModel, tmpBoardInfo, tmpExtdInfo] = await Promise.all([
+                        axios.get(`${node.duetUrl}${node.duetEMReq}`, { headers: {'Content-Type': 'application/json'}}),
+                        axios.get(`${node.duetUrl}${node.duetBIReq}`, { headers: {'Content-Type': 'application/json'}}),
+                        axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}})
+                    ]); 
+
+                    mergedModel = tmpEmptyModel.data['result'];
+                    
+                    //add these 2 null keys for intercept node as not returned as part of model
+                    mergedModel.state['messageBox'] = {};
+                    mergedModel.state.messageBox['title'] = null;
+                    mergedModel.state.messageBox['message'] = null;
+                    node.duetEmptyModel = tmpEmptyModel.data['result'];
+                    mergedModel.boards[0] = tmpBoardInfo.data;
+                    mergedModel = merge(mergedModel, tmpExtdInfo.data['result'], { arrayMerge : combineMerge });
+                    node.dsfFullModel = mergedModel;
+                    msg = {
+                        topic:"dsfModel", 
+                        payload: {
+                            fullModel: mergedModel,
+                            patchModel: null,
+                            prevModel: null
+                        },
+                        dsf: {monitorMode: "Duet"}
+                    };
+                    node.dsfFirstMsg = false;
+                    node.send(msg);
+                    return true;
                 };
-                node.dsfFirstMsg = false;
-                node.send(msg);
-                return true;
             }
             catch(e){
-                msg = null;
-                msg = {topic:"dsf-monitor", payload: "Error getting data duetModel = " + e.message};
-                node.send(msg);
+                
+                failedLogin("Error getting data duetModel = " + e.message, "Duet");
                 return false;
             }
         }; 
@@ -457,9 +495,7 @@ module.exports = function(RED) {
                 node.send(msg);
             }
             catch(e){
-                msg = null;
-                msg = {topic:"dsf-monitor", payload: "No server defined or cannot connect. duetPartModel Error = " + e};
-                node.send(msg);
+                failedLogin("Error getting data duetPartModel = " + e, "Duet");
             }
             return true;
         };
@@ -484,9 +520,7 @@ module.exports = function(RED) {
                 };
             };
         } else {
-            msg = null;
-            msg = {topic:"dsf-monitor", payload: "no server defined or cannot connect"};
-            node.send(msg);
+            failedLogin("No server defined or cannot connect", "NONE");
         };
 
         node.on('close', function() {
@@ -497,6 +531,9 @@ module.exports = function(RED) {
                 try{
                     clearIntervalAsync(timer1);
                     timer1 = null;
+                    if(node.server.btype == "Duet"){
+                        axios.get(`${node.duetLogoff}`, { headers: {'Content-Type': 'application/json'}});
+                    }
                 }catch{}
             }
             catch {
@@ -527,17 +564,21 @@ module.exports = function(RED) {
                     try{
                         clearIntervalAsync(timer1);
                         timer1 = null;
+                        if(node.server.btype == "Duet"){
+                            axios.get(`${node.duetLogoff}`, { headers: {'Content-Type': 'application/json'}});
+                        }    
                     }
                     catch(e){
-                        msg = null;
-                        msg = {topic:"dsf-monitor", payload: "Stop error = " + e};
-                        node.send(msg);
+                        failedLogin("Error Stopping Node. Err = " + e, node.server.btype);
                     };
                 }
             }
             catch(e) {
                 //no msg.payload.monitorState was received so take no action just fwd on the msg for completeness
-                msg.dsf = {monitor: "error = " + e};
+                msg.dsf = {
+                    monitorMode: node.server.btype,
+                    monitorError: "No monitorState specified or Uncaught Error : err = " + e
+                }
                 node.send(msg);
             }
         });
@@ -549,19 +590,45 @@ module.exports = function(RED) {
         this.name = n.name;
         this.command = n.command;
         this.server = RED.nodes.getNode(n.server);
+        this.password = this.server.plainPass;
+        if(!this.password || this.password === "") {this.password = "reprap"};
+        this.duetLogin = (`http://${this.server.server}/rr_connect?password=${this.password}&time=`); //login info
         this.dsfURL = (`http://${this.server.server}/machine/code/`);
         this.duetURL = (`http://${this.server.server}/rr_gcode?gcode=`);
         var node = this;
+        var tmpLogErr = null;
         const axios = require('axios');
 
-        
-        var failedCMD = function(e) {
-            msg = null;
-            msg = {topic:"dsf-command", payload: "No server defined or cannot connect. Command has not been sent! error = " + e};
+        var timeToStr = function (time) {
+            let result = "";
+            result += time.getFullYear() + "-";
+            result += (time.getMonth() + 1) + "-";
+            result += time.getDate() + "T";
+            result += time.getHours() + ":";
+            result += time.getMinutes() + ":";
+            result += time.getSeconds();
+            return result;
+        };
+
+        var failedCMD = function(e, msg) {
+            if (typeof msg.dsf !== "undefined"){
+                msg.dsf.cmdSent = "ERROR: No DSF server or Duet Board defined, or cannot connect. Command has not been sent! error = " + e;
+            } else {
+                msg.dsf = {cmdSent: "ERROR: No DSF server or Duet Board defined, or cannot connect. Command has not been sent! error = " + e};
+            }
+            node.send(msg);
+        };
+
+        var failedLogin = function(e, msg) {
+            if (typeof msg.dsf !== "undefined"){
+                msg.dsf.cmdSent = "ERROR: CMD Rejected. Command has not been sent! Reason = " + e;
+            } else {
+                msg.dsf = {cmdSent: "ERROR: CMD Rejected. Command has not been sent! Reason = " + e};
+            }
             node.send(msg);
         };
         
-        var sndCommand = function(msg) {
+        var sndCommand = async function(msg) {
             if (node.server) {
                 var strCMD = null;
 
@@ -582,18 +649,33 @@ module.exports = function(RED) {
                         node.send(msg);
                     }
                     if(node.server.btype == "Duet"){
-                        axios.get(`${node.duetURL}${strCMD}`, { headers: {'Content-Type': 'application/json'}});
-                        if (typeof msg.dsf !== "undefined"){
-                            msg.dsf.cmdSent = node.duetURL+strCMD;
-                        } else {
-                            msg.dsf = {cmdSent: node.duetURL+strCMD};
-                        }
-                        node.send(msg);
-                    }
+                        let tmpDate = timeToStr(new Date());
+                        let [tmpLogin] = await Promise.all([
+                             axios.get(`${node.duetLogin}${tmpDate}`, { headers: {'Content-Type': 'application/json'}})
+                        ]);
+                        tmpLogErr = tmpLogin.data['err'];
+                        if (tmpLogErr != 0){
+                            if (tmpLogErr == 1) {
+                                failedLogin("Invalid Password", msg);
+                                return;
+                            } else {
+                                failedLogin("No Available User Sessions", msg);
+                                return;
+                            }
+                        } else{
+                            axios.get(`${node.duetURL}${strCMD}`, { headers: {'Content-Type': 'application/json'}})
+                            if (typeof msg.dsf !== "undefined"){
+                                msg.dsf.cmdSent = node.duetURL+strCMD;
+                            } else {
+                                msg.dsf = {cmdSent: node.duetURL+strCMD};
+                            }
+                            node.send(msg);
+                        };        
+                    };
                     
                 }
                 catch(e){
-                    failedCMD(e);
+                    failedCMD(e, msg);
                 };
             };
         };
