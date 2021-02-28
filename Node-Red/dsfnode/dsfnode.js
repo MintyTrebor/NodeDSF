@@ -274,8 +274,14 @@ module.exports = function(RED) {
         };
 
         var restartWS = function() {
-            msg = null;
-            msg.dsf = {monitorError: "No server defined or cannot connect to DSF. Checking again in 10 seconds"};
+            msg = {
+                topic:"dsfModel", 
+                payload: null,
+                dsf: {
+                    monitorMode: "DSF",
+                    monitorError: "No server defined or cannot connect to DSF. Checking again in 10 seconds"
+                }
+            };
             node.send(msg);
         };
         
