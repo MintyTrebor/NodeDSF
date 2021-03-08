@@ -1,0 +1,529 @@
+[
+    {
+        "id": "af9cf391.fd50a",
+        "type": "tab",
+        "label": "Duet Dashboard",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "85921641.1de008",
+        "type": "ui_template",
+        "z": "af9cf391.fd50a",
+        "group": "c284f5ba.1ce698",
+        "name": "Web Cam",
+        "order": 4,
+        "width": "7",
+        "height": "4",
+        "format": "<!DOCTYPE html>  \n<html>  \n    <head>  \n        <style> \n            .geeks { \n                width:100%; \n                height:100%px; \n            } \n            img { \n                width:100%; \n                height:100%; \n            } \n        </style> \n    </head>  \n    <body> \n        <div class = \"geeks\"> \n            <img src= \"{{(msg.payload)}}\"></img>\n        </div> \n    </body>  \n</html> \n\n",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": false,
+        "templateScope": "local",
+        "x": 840,
+        "y": 840,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "3a212bb2.ae6824",
+        "type": "ui_button",
+        "z": "af9cf391.fd50a",
+        "name": "EM STOP",
+        "group": "c284f5ba.1ce698",
+        "order": 6,
+        "width": "5",
+        "height": "1",
+        "passthru": false,
+        "label": "Emergency Stop",
+        "tooltip": "",
+        "color": "white",
+        "bgcolor": "red",
+        "icon": "fa-ban",
+        "payload": "Stop Printing?",
+        "payloadType": "str",
+        "topic": "data",
+        "x": 840,
+        "y": 600,
+        "wires": [
+            [
+                "431b378.0170ec8"
+            ]
+        ]
+    },
+    {
+        "id": "431b378.0170ec8",
+        "type": "ui_toast",
+        "z": "af9cf391.fd50a",
+        "position": "dialog",
+        "displayTime": "3",
+        "highlight": "",
+        "sendall": false,
+        "outputs": 1,
+        "ok": "STOP",
+        "cancel": "CANCEL",
+        "raw": false,
+        "topic": "Emergency Stop",
+        "name": "CONFIRM",
+        "x": 1060,
+        "y": 600,
+        "wires": [
+            [
+                "54d10dff.c94634"
+            ]
+        ]
+    },
+    {
+        "id": "b888b562.eb8fa8",
+        "type": "ui_gauge",
+        "z": "af9cf391.fd50a",
+        "name": "Tool Temp",
+        "group": "c284f5ba.1ce698",
+        "order": 1,
+        "width": "3",
+        "height": "2",
+        "gtype": "gage",
+        "title": "{{msg.label}}",
+        "label": "celsius",
+        "format": "{{value}}",
+        "min": "50",
+        "max": "300",
+        "colors": [
+            "#0080c0",
+            "#00ff00",
+            "#ca3838"
+        ],
+        "seg1": "160",
+        "seg2": "285",
+        "x": 850,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "2d283551.fbbe0a",
+        "type": "ui_gauge",
+        "z": "af9cf391.fd50a",
+        "name": "Bed Temp",
+        "group": "c284f5ba.1ce698",
+        "order": 3,
+        "width": "3",
+        "height": "2",
+        "gtype": "gage",
+        "title": "{{msg.label}}",
+        "label": "celsius",
+        "format": "{{value}}",
+        "min": "50",
+        "max": "110",
+        "colors": [
+            "#0080c0",
+            "#00ff00",
+            "#ca3838"
+        ],
+        "seg1": "50",
+        "seg2": "85",
+        "x": 840,
+        "y": 780,
+        "wires": []
+    },
+    {
+        "id": "7e1ea05f.ce0fc",
+        "type": "ui_text",
+        "z": "af9cf391.fd50a",
+        "group": "c284f5ba.1ce698",
+        "order": 2,
+        "width": "1",
+        "height": "2",
+        "name": "FAN",
+        "label": "FAN",
+        "format": "{{msg.payload}}%",
+        "layout": "col-center",
+        "x": 830,
+        "y": 720,
+        "wires": []
+    },
+    {
+        "id": "e2a77ef9.63614",
+        "type": "link in",
+        "z": "af9cf391.fd50a",
+        "name": "Tool Gage In",
+        "links": [
+            "fae7aca7.e9a86",
+            "bc5adfcc.2b642",
+            "3f558e8d.3c78c2",
+            "91e9d103.8e0bb"
+        ],
+        "x": 705,
+        "y": 660,
+        "wires": [
+            [
+                "b888b562.eb8fa8"
+            ]
+        ]
+    },
+    {
+        "id": "f666dcd5.c8314",
+        "type": "link in",
+        "z": "af9cf391.fd50a",
+        "name": "Fan Speed In",
+        "links": [
+            "34017d00.bdd544",
+            "bbb521fc.36f16",
+            "ff8e0e91.cd031",
+            "abf72364.16af6",
+            "b83f6620.d1bc38"
+        ],
+        "x": 705,
+        "y": 720,
+        "wires": [
+            [
+                "7e1ea05f.ce0fc"
+            ]
+        ]
+    },
+    {
+        "id": "ee3127f5.f2edd8",
+        "type": "link in",
+        "z": "af9cf391.fd50a",
+        "name": "Bed Gage In",
+        "links": [
+            "987b7b53.3f87d8",
+            "fa168e69.15d0a",
+            "122e4ff2.c3b77",
+            "8bffac0f.4baa5"
+        ],
+        "x": 705,
+        "y": 780,
+        "wires": [
+            [
+                "2d283551.fbbe0a"
+            ]
+        ]
+    },
+    {
+        "id": "160764c2.d3814b",
+        "type": "comment",
+        "z": "af9cf391.fd50a",
+        "name": "Dashboard Gui - Readme",
+        "info": "You must assign each of these nodes to a dashboard tab/group in the Dashboard configuration screen",
+        "x": 800,
+        "y": 525,
+        "wires": []
+    },
+    {
+        "id": "430f9050.c728a",
+        "type": "function",
+        "z": "af9cf391.fd50a",
+        "name": "Set T0 Gage",
+        "func": "var CurrToolTemp = msg.payload.patchModel.heat.heaters[1].current;\nvar ActiveToolTemp = msg.payload.fullModel.heat.heaters[1].active;\nvar StandbyToolTemp = msg.payload.fullModel.heat.heaters[1].standby;\nvar MaxToolTemp = msg.payload.fullModel.heat.heaters[1].active;\nvar ToolStatus = msg.payload.fullModel.heat.heaters[1].state;\nvar bT0GaugeSet = flow.get(\"bT0GaugeSet\");\nvar T0LastStatus = flow.get(\"T0LastStatus\");\n\nif (typeof bT0GaugeSet == 'undefined' || bT0GaugeSet === null) {\n    bT0GaugeSet = false;\n    T0LastStatus = ToolStatus;\n}\n\n if (ToolStatus == \"active\" || ToolStatus == 2) {\n        msg.label = \"T0: active > \" + ActiveToolTemp;\n    }\n    \n    if (ToolStatus == \"standby\" || ToolStatus == 1) {\n        msg.label = \"T0: standby > \" + StandbyToolTemp;\n    }\n    \n    \n    if (ToolStatus == \"off\" || ToolStatus === 0) {\n        msg.label = \"T0: off\";\n    } \n\nif (!bT0GaugeSet) {\n   \n\n    msg.ui_control = {min:0,\n                    max:Math.round(MaxToolTemp),\n                    seg1:139,\n                    seg2:(Math.round(MaxToolTemp) - 15),\n                    colors:[\"blue\",\"green\",\"red\"],\n                    gtype:\"gage\"};\n                    \n    flow.set(\"bT0GaugeSet\", true);                \n}\n\n//flow.set(\"T0LastStatus\", ToolStatus); \n\nmsg.payload = Math.round(CurrToolTemp);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1050,
+        "y": 120,
+        "wires": [
+            [
+                "fae7aca7.e9a86"
+            ]
+        ]
+    },
+    {
+        "id": "fae7aca7.e9a86",
+        "type": "link out",
+        "z": "af9cf391.fd50a",
+        "name": "",
+        "links": [
+            "e2a77ef9.63614"
+        ],
+        "x": 1255,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "987b7b53.3f87d8",
+        "type": "link out",
+        "z": "af9cf391.fd50a",
+        "name": "",
+        "links": [
+            "ee3127f5.f2edd8"
+        ],
+        "x": 1255,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "890a44e9.6ae468",
+        "type": "link in",
+        "z": "af9cf391.fd50a",
+        "name": "Mobile DashBoard In",
+        "links": [],
+        "x": 485,
+        "y": 220,
+        "wires": [
+            [
+                "6775ed7a.474714",
+                "7cc433d5.f2e33c",
+                "2bc6f7e.c572b08",
+                "311228c.4e07bd8",
+                "38e0aa90.23bd06",
+                "23c46ccf.d27674"
+            ]
+        ]
+    },
+    {
+        "id": "7cc433d5.f2e33c",
+        "type": "dsf-event",
+        "z": "af9cf391.fd50a",
+        "name": "T0 Current Temp",
+        "interval": "5",
+        "delta": "1",
+        "modelPath": "heat.heaters[1].current",
+        "outputs": 1,
+        "x": 790,
+        "y": 120,
+        "wires": [
+            [
+                "430f9050.c728a"
+            ]
+        ]
+    },
+    {
+        "id": "6775ed7a.474714",
+        "type": "dsf-event",
+        "z": "af9cf391.fd50a",
+        "name": "Bed Current Temp",
+        "interval": "5",
+        "delta": "1",
+        "modelPath": "heat.heaters[0].current",
+        "outputs": 1,
+        "x": 790,
+        "y": 40,
+        "wires": [
+            [
+                "1666f24c.6b9c3e"
+            ]
+        ]
+    },
+    {
+        "id": "2bc6f7e.c572b08",
+        "type": "dsf-event",
+        "z": "af9cf391.fd50a",
+        "name": "Layer Change",
+        "interval": "0",
+        "delta": "1",
+        "modelPath": "job.file.layer",
+        "outputs": 1,
+        "x": 780,
+        "y": 200,
+        "wires": [
+            [
+                "8a9fd91d.dc9d48"
+            ]
+        ]
+    },
+    {
+        "id": "8a9fd91d.dc9d48",
+        "type": "function",
+        "z": "af9cf391.fd50a",
+        "name": "Create Layer Info",
+        "func": "var currLayer = msg.payload.patchModel.job.file.layer;\nvar totalLayers = msg.payload.fullModel.job.file.layers;\nmsg.payload.LayersCombined= currLayer + \"/\" + totalLayers;\nmsg.payload.CurrLayer = currLayer;\nmsg.payload.TotalLayers = totalLayers;\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1010,
+        "y": 200,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "311228c.4e07bd8",
+        "type": "dsf-event",
+        "z": "af9cf391.fd50a",
+        "name": "Job Name Change",
+        "interval": "0",
+        "delta": "0",
+        "modelPath": "job.file.fileName",
+        "outputs": 1,
+        "x": 790,
+        "y": 280,
+        "wires": [
+            [
+                "4c78b2b.2e9fc4c"
+            ]
+        ]
+    },
+    {
+        "id": "38e0aa90.23bd06",
+        "type": "dsf-event",
+        "z": "af9cf391.fd50a",
+        "name": "Job Time Left",
+        "interval": "30",
+        "delta": "10",
+        "modelPath": "job.timesLeft.file",
+        "outputs": 1,
+        "x": 780,
+        "y": 360,
+        "wires": [
+            [
+                "72a01fff.a6094"
+            ]
+        ]
+    },
+    {
+        "id": "23c46ccf.d27674",
+        "type": "dsf-event",
+        "z": "af9cf391.fd50a",
+        "name": "Fan Speed",
+        "interval": "1",
+        "delta": "0",
+        "modelPath": "fans[0].actualValue",
+        "outputs": 1,
+        "x": 770,
+        "y": 440,
+        "wires": [
+            [
+                "a22551b6.e5b31"
+            ]
+        ]
+    },
+    {
+        "id": "b83f6620.d1bc38",
+        "type": "link out",
+        "z": "af9cf391.fd50a",
+        "name": "DSF Msg Event",
+        "links": [
+            "f666dcd5.c8314"
+        ],
+        "x": 1255,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "72a01fff.a6094",
+        "type": "function",
+        "z": "af9cf391.fd50a",
+        "name": "Format Remaining Time",
+        "func": "var JobTime = msg.payload.fullModel.job.timesLeft.file;\n\nif (typeof JobTime == 'undefined' || JobTime === null) {JobTime = 0;}\n\n\nfunction secondsToHms(d) {\n    if (d === 0) {return \"00:00:00\";}\n    d = Number(d);\n    var h = Math.floor(d / 3600);\n    var m = Math.floor(d % 3600 / 60);\n    var s = Math.floor(d % 3600 % 60);\n\n    var hDisplay = h > 0 ? h + (h == 1 ? \" hour, \" : \" hours, \") : \"\";\n    var mDisplay = m > 0 ? m + (m == 1 ? \" minute, \" : \" minutes, \") : \"\";\n    var sDisplay = s > 0 ? s + (s == 1 ? \" second\" : \" seconds\") : \"\";\n    return hDisplay + mDisplay + sDisplay; \n}\n\nmsg.payload = \"Remaining Time: \" + secondsToHms(JobTime);\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1050,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "4c78b2b.2e9fc4c",
+        "type": "function",
+        "z": "af9cf391.fd50a",
+        "name": "Format Job Name",
+        "func": "var splitFile = function (str) {\n    return str.split('\\\\').pop().split('/').pop();\n};\n\nvar jobName = msg.payload.fullModel.job.file.fileName;\nvar fileName = splitFile(jobName);\n\n//trim off the gcode extension from the file name\nfileName= fileName.substring(0, fileName.length -6);\n\nflow.set(\"jobName\", fileName);\nflow.set(\"counter\", 0);\n\n//set cmds to create directory\nmsg.payload.path = flow.get(\"imgPath\", \"storeInFile\");\nmsg.payload.filePrefix = fileName;\n\n//msg.payload = \"mkdir \" + flow.get(\"imgPath\") + fileName;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1010,
+        "y": 280,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "1666f24c.6b9c3e",
+        "type": "function",
+        "z": "af9cf391.fd50a",
+        "name": "Set Bed Gage",
+        "func": "var CurrToolTemp = msg.payload.patchModel.heat.heaters[0].current;\nvar ActiveToolTemp = msg.payload.fullModel.heat.heaters[0].active;\nvar StandbyToolTemp = msg.payload.fullModel.heat.heaters[0].standby;\nvar MaxToolTemp = msg.payload.fullModel.heat.heaters[0].active;\nvar ToolStatus = msg.payload.fullModel.heat.heaters[0].state;\nvar bBedGaugeSet = flow.get(\"bBedGaugeSet\");\nvar bedLastStatus = flow.get(\"bedLastStatus\");\n\nif (typeof bBedGaugeSet == 'undefined' || bBedGaugeSet === null) {\n    bBedGaugeSet = false;\n    bedLastStatus = ToolStatus;\n}\n\nif (ToolStatus == \"active\" || ToolStatus == 2) {\n        msg.label = \"BED: active > \" + ActiveToolTemp;\n    }\n    \n    if (ToolStatus == \"standby\" || ToolStatus == 1) {\n        msg.label = \"BED: standby > \" + StandbyToolTemp;\n    }\n    \n    if (ToolStatus == \"off\" || ToolStatus === 0) {\n        msg.label = \"BED: off\";\n    } \n\nif (!bBedGaugeSet) {\n    \n    msg.ui_control = {min:0,\n                    max:Math.round(MaxToolTemp),\n                    seg1:49,\n                    seg2:(Math.round(MaxToolTemp) - 5),\n                    colors:[\"blue\",\"green\",\"red\"],\n                    gtype:\"gage\"};\n\n    flow.set(\"bBedGaugeSet\", true);\n}\n\n//flow.set(\"bedLastStatus\", ToolStatus);    \n\nmsg.payload = Math.round(CurrToolTemp);\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1060,
+        "y": 40,
+        "wires": [
+            [
+                "987b7b53.3f87d8"
+            ]
+        ]
+    },
+    {
+        "id": "a22551b6.e5b31",
+        "type": "function",
+        "z": "af9cf391.fd50a",
+        "name": "Set Fan Speed",
+        "func": "var FanSpeed = msg.payload.fullModel.fans[0].actualValue;\n\nif (FanSpeed >= 0.01){\n    msg.payload = FanSpeed * 100;\n} else {\n    msg.payload = 0;\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1020,
+        "y": 440,
+        "wires": [
+            [
+                "b83f6620.d1bc38"
+            ]
+        ]
+    },
+    {
+        "id": "bf494db0.d7d2c",
+        "type": "inject",
+        "z": "af9cf391.fd50a",
+        "name": "WebCamURL",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "http://10.66.1.52:8081",
+        "payloadType": "str",
+        "x": 580,
+        "y": 840,
+        "wires": [
+            [
+                "85921641.1de008"
+            ]
+        ]
+    },
+    {
+        "id": "54d10dff.c94634",
+        "type": "dsf-command",
+        "z": "af9cf391.fd50a",
+        "name": "Emergency Stop",
+        "command": "M112",
+        "server": "",
+        "x": 1290,
+        "y": 600,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "c284f5ba.1ce698",
+        "type": "ui_group",
+        "name": "3DP 2 Status",
+        "tab": "712fac99.add4d4",
+        "order": 1,
+        "disp": true,
+        "width": "7",
+        "collapse": true
+    },
+    {
+        "id": "712fac99.add4d4",
+        "type": "ui_tab",
+        "name": "Duet Dashboard",
+        "icon": "dashboard",
+        "order": 26,
+        "disabled": false,
+        "hidden": false
+    }
+]
