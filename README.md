@@ -1,7 +1,7 @@
 # NodeDSF
-NodeDSF is a project which includes a set of custom Nodes (called dsfnode) for Node-red to interface with Duet Software Framework on SBC, plus an optional DWC Plugin which allows you to embedd your custom GUI's within the Duet web interface
+NodeDSF is a project which includes a set of custom Nodes (called dsfnode) for Node-red to interface with Duet Compatable Control Boards or the Duet Software Framework running on an SBC. It also includes an optional DWC Plugin which allows you to embedd your custom Node-Red dashboards within the Duet web interface when used in combination with DSF+SBC.
 
-### New Duet Mode : Now works with Duet Control boards (v2/3) running firmware v3+ directly (experimental) + DSF on SBC's.  
+### New Duet Mode : Now also works with Duet Control boards (v2/3) running firmware v3+ directly (experimental).  
 
 Below is a brief overview video showcasing some of what can be achieved with NodeDSF.  
 
