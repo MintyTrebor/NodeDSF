@@ -1,0 +1,179 @@
+[
+    {
+        "id": "9dada8e1.3f8cc8",
+        "type": "comment",
+        "z": "b83bf94d.bdb578",
+        "name": "Retrieve last values on boot/start",
+        "info": "",
+        "x": 150,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "d5ac3e8b.3dd88",
+        "type": "inject",
+        "z": "b83bf94d.bdb578",
+        "name": "Get Data on Start",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 130,
+        "y": 140,
+        "wires": [
+            [
+                "94454099.2dd71"
+            ]
+        ]
+    },
+    {
+        "id": "94454099.2dd71",
+        "type": "function",
+        "z": "b83bf94d.bdb578",
+        "name": "Get flow vals from storage",
+        "func": "flow.get('emailAddr', \"storeInFile\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 430,
+        "y": 140,
+        "wires": [
+            [
+                "88511a31.2f93a8"
+            ]
+        ]
+    },
+    {
+        "id": "88511a31.2f93a8",
+        "type": "change",
+        "z": "b83bf94d.bdb578",
+        "name": "Get emailAddr Value",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "#:(storeInFile)::emailAddr",
+                "tot": "flow"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 760,
+        "y": 140,
+        "wires": [
+            [
+                "4fdbc2e2.e9f3cc"
+            ]
+        ]
+    },
+    {
+        "id": "4fdbc2e2.e9f3cc",
+        "type": "ui_text_input",
+        "z": "b83bf94d.bdb578",
+        "name": "email",
+        "label": "email",
+        "tooltip": "enter your email",
+        "group": "e1209ba9.8a0be8",
+        "order": 2,
+        "width": 0,
+        "height": 0,
+        "passthru": false,
+        "mode": "email",
+        "delay": 300,
+        "topic": "",
+        "topicType": "str",
+        "x": 1050,
+        "y": 140,
+        "wires": [
+            [
+                "3ae4d7fb.a1f518"
+            ]
+        ]
+    },
+    {
+        "id": "3ae4d7fb.a1f518",
+        "type": "function",
+        "z": "b83bf94d.bdb578",
+        "name": "Set emailAddr flow val",
+        "func": "flow.set('emailAddr', msg.payload, \"storeInFile\");\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "x": 1300,
+        "y": 140,
+        "wires": [
+            [
+                "8fb86551.492178"
+            ]
+        ]
+    },
+    {
+        "id": "6ed01c38.6f9754",
+        "type": "ui_template",
+        "z": "b83bf94d.bdb578",
+        "group": "e1209ba9.8a0be8",
+        "name": "Heading",
+        "order": 1,
+        "width": "12",
+        "height": "1",
+        "format": "<div style=\"text-align: center;\">\n    <h1 style=\"text-align: center; font-size: 16px;\">Enter Email</h1>\n</div>",
+        "storeOutMessages": true,
+        "fwdInMessages": true,
+        "resendOnRefresh": true,
+        "templateScope": "local",
+        "x": 1060,
+        "y": 80,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "8fb86551.492178",
+        "type": "debug",
+        "z": "b83bf94d.bdb578",
+        "name": "Do something with emailAddr",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1620,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "e1209ba9.8a0be8",
+        "type": "ui_group",
+        "name": "Email",
+        "tab": "1366da97.99c135",
+        "order": 1,
+        "disp": false,
+        "width": "12",
+        "collapse": false
+    },
+    {
+        "id": "1366da97.99c135",
+        "type": "ui_tab",
+        "name": "Email",
+        "icon": "dashboard",
+        "disabled": false,
+        "hidden": false
+    }
+]
