@@ -185,6 +185,7 @@ module.exports = function(RED) {
         this.duetEMReq = "/rr_model"; //empty model
         this.duetFNReq = "/rr_model?flags=d99fn"; //quick info update
         this.duetBIReq = "/rr_config"; //board & firmware info
+        this.duetGVReq = "/rr_model?key=global&flags=d99vn"; //global variables
         this.duetEmptyModel = "";
         this.nodeRun = true;
         this.pollRate = this.server.bPollRate;
@@ -411,20 +412,22 @@ module.exports = function(RED) {
                     }
                 } else{
 
-                    let [tmpEmptyModel, tmpBoardInfo, tmpExtdInfo] = await Promise.all([
+                    let [tmpEmptyModel, tmpBoardInfo, tmpExtdInfo, tmpGlobalVar] = await Promise.all([
                         axios.get(`${node.duetUrl}${node.duetEMReq}`, { headers: {'Content-Type': 'application/json'}}),
                         axios.get(`${node.duetUrl}${node.duetBIReq}`, { headers: {'Content-Type': 'application/json'}}),
-                        axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}})
+                        axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
+                        axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
                     ]); 
 
                     mergedModel = tmpEmptyModel.data['result'];
                     
-                    //add these 2 null keys for intercept node as not returned as part of model
+                    //add null keys for intercept node as not returned as part of model
                     mergedModel.state['messageBox'] = {};
                     mergedModel.state.messageBox['title'] = null;
                     mergedModel.state.messageBox['message'] = null;
                     node.duetEmptyModel = tmpEmptyModel.data['result'];
                     mergedModel.boards[0] = tmpBoardInfo.data;
+                    mergedModel.global = tmpGlobalVar.data['result'];
                     mergedModel = merge(mergedModel, tmpExtdInfo.data['result'], { arrayMerge : combineMerge });
                     node.dsfFullModel = mergedModel;
                     msg = {
@@ -461,11 +464,13 @@ module.exports = function(RED) {
                 await duetModel();
             }
             try{
-                let [tmpExtdInfo, tmpModel] = await Promise.all([
+                let [tmpExtdInfo, tmpModel, tmpGlobalVar] = await Promise.all([
                     axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
-                    axios.get(`${node.duetUrl}${node.duetS0Req}`, { headers: {'Content-Type': 'application/json'}})
+                    axios.get(`${node.duetUrl}${node.duetS0Req}`, { headers: {'Content-Type': 'application/json'}}),
+                    axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
                 ]);
                 mergedModel = tmpExtdInfo.data['result'];
+                mergedModel.global = tmpGlobalVar.data['result'];
                 quickModel = tmpModel.data;
                 //insert any display messages into model
                 if(quickModel.hasOwnProperty('msgBox.msg')) {
