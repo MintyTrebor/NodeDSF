@@ -22,7 +22,7 @@ The Machine Model is a JSON object representing the current state of the Machine
 **Note:** Duet control boards have connection/session limitations, and dsfnode consumes at least one of the available sessions, Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for more information. The **Duet** mode currently delivers a subset of the full machine model to reduce load on the control boards. If there is data you require that is missing please raise an issue and I will see if it can be added.
 
 **Change Log**  
-V1.1.3 - Added Global Variables to the Monitor Node
+V1.1.3 - Added Global Variables to the Monitor Node  
 V1.1.2 - Added support for password protected connections (Note: passwords are in clear text as per Duet spec) & improved error handling.  
 V1.1 - Add Duet mode to enable connection to network enabled control boards not running with DSF on SBC  
 V1 - Initial Release
