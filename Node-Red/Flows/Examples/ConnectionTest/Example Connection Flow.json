@@ -1,0 +1,109 @@
+[
+    {
+        "id": "13a2ecca.03bcf3",
+        "type": "tab",
+        "label": "Connection Example",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "beeff97a.b8cc58",
+        "type": "inject",
+        "z": "13a2ecca.03bcf3",
+        "name": "START",
+        "props": [
+            {
+                "p": "payload.monitorState",
+                "v": "ON",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 370,
+        "y": 180,
+        "wires": [
+            [
+                "bed078f9.e89ec8"
+            ]
+        ]
+    },
+    {
+        "id": "548c351.05b80cc",
+        "type": "inject",
+        "z": "13a2ecca.03bcf3",
+        "name": "STOP",
+        "props": [
+            {
+                "p": "payload.monitorState",
+                "v": "OFF",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 370,
+        "y": 340,
+        "wires": [
+            [
+                "bed078f9.e89ec8"
+            ]
+        ]
+    },
+    {
+        "id": "42871ff2.fe68f",
+        "type": "debug",
+        "z": "13a2ecca.03bcf3",
+        "name": "Full Msg",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 780,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "8084b18f.1619",
+        "type": "debug",
+        "z": "13a2ecca.03bcf3",
+        "name": "Normal Output",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 800,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "bed078f9.e89ec8",
+        "type": "dsf-monitor",
+        "z": "13a2ecca.03bcf3",
+        "name": "Duet2 Board",
+        "server": "",
+        "autoStart": false,
+        "x": 580,
+        "y": 260,
+        "wires": [
+            [
+                "8084b18f.1619",
+                "42871ff2.fe68f"
+            ]
+        ]
+    }
+]
