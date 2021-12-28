@@ -186,6 +186,7 @@ module.exports = function(RED) {
         this.duetFNReq = "/rr_model?flags=d99fn"; //quick info update
         this.duetBIReq = "/rr_config"; //board & firmware info
         this.duetGVReq = "/rr_model?key=global&flags=d99vn"; //global variables
+        this.duetMsgReq = "/rr_model?key=state&flags=d99vn"; //Check For Display Msgs (only needed in Duet Mode)
         this.duetEmptyModel = "";
         this.nodeRun = true;
         this.pollRate = this.server.bPollRate;
@@ -482,6 +483,11 @@ module.exports = function(RED) {
                     }
                     mergedModel['state']['messageBox']['title'] = quickModel['msgBox.title'];
                     mergedModel['state']['messageBox']['message'] = quickModel['msgBox.msg'];
+                };
+                //check to see if the message count has increased then get the last disaply message and incorporate into patchModel
+                if(mergedModel.seqs.reply > node.dsfFullModel.seqs.reply){
+                    let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetMsgReq}`, { headers: {'Content-Type': 'application/json'}})]);
+                    mergedModel['state']['displayMessage'] = tmpDispMsg.data['result']['displayMessage'];
                 };
                 patchModel = diff(node.dsfFullModel, mergedModel);
                 patchModel = cleanDeep(patchModel);
