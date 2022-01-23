@@ -1,5 +1,5 @@
 # NodeDSF
-NodeDSF is a project which includes a set of custom Nodes (called dsfnode) for Node-red to interface with Duet Compatable Control Boards or the Duet Software Framework running on an SBC.
+NodeDSF is a set of custom Nodes (called dsfnode) for Node-red to interface with Duet Compatable Control Boards or the Duet Software Framework running on an SBC.
 
 Please review the [wiki](https://github.com/MintyTrebor/NodeDSF/wiki) for more information  
 
