@@ -412,24 +412,29 @@ module.exports = function(RED) {
                         return false;
                     }
                 } else{
-
+                    //Get the emty model, board info, quick info, global variables
                     let [tmpEmptyModel, tmpBoardInfo, tmpExtdInfo, tmpGlobalVar] = await Promise.all([
                         axios.get(`${node.duetUrl}${node.duetEMReq}`, { headers: {'Content-Type': 'application/json'}}),
                         axios.get(`${node.duetUrl}${node.duetBIReq}`, { headers: {'Content-Type': 'application/json'}}),
                         axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
                         axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
                     ]); 
-
-                    mergedModel = tmpEmptyModel.data['result'];
+                    const tmpEmptyModel2 = await tmpEmptyModel;
+                    const tmpBoardInfo2 = await tmpBoardInfo;
+                    const tmpGlobalVar2 = await tmpGlobalVar;
+                    const tmpExtdInfo2 = await tmpExtdInfo;
+                    mergedModel = tmpEmptyModel2.data['result'];
                     
                     //add null keys for intercept node as not returned as part of model
                     mergedModel.state['messageBox'] = {};
                     mergedModel.state.messageBox['title'] = null;
                     mergedModel.state.messageBox['message'] = null;
-                    node.duetEmptyModel = tmpEmptyModel.data['result'];
-                    mergedModel.boards[0] = tmpBoardInfo.data;
-                    mergedModel.global = tmpGlobalVar.data['result'];
-                    mergedModel = merge(mergedModel, tmpExtdInfo.data['result'], { arrayMerge : combineMerge });
+                    mergedModel['seqs']['reply'] = 0;
+                    mergedModel['state']['displayMessage'] = null;
+                    node.duetEmptyModel = tmpEmptyModel2.data['result'];
+                    mergedModel.boards[0] = tmpBoardInfo2.data;
+                    mergedModel.global = tmpGlobalVar2.data['result'];
+                    mergedModel = merge(mergedModel, tmpExtdInfo2.data['result'], { arrayMerge : combineMerge });
                     node.dsfFullModel = mergedModel;
                     msg = {
                         topic:"dsfModel", 
@@ -454,50 +459,67 @@ module.exports = function(RED) {
             
         async function duetPartModel() {
             mergedModel = null;
-            tmpExtdInfo = null;
-            parsedData = null;
-            quickModel = null;
             msg = null;
-            emptyModel = null;
             patchModel = null;
+            tmpMsgModel = null;
             if(node.dsfFirstMsg && node.nodeRun){
                 //just a dirty check to ensure we have run the required first step
                 await duetModel();
             }
             try{
-                let [tmpExtdInfo, tmpModel, tmpGlobalVar] = await Promise.all([
+            let [tmpExtdInfo, tmpGlobalVar] = await Promise.all([
                     axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
-                    axios.get(`${node.duetUrl}${node.duetS0Req}`, { headers: {'Content-Type': 'application/json'}}),
                     axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
                 ]);
-                mergedModel = tmpExtdInfo.data['result'];
-                mergedModel.global = tmpGlobalVar.data['result'];
-                quickModel = tmpModel.data;
-                //insert any display messages into model
-                if(quickModel.hasOwnProperty('msgBox.msg')) {
-                    if (!mergedModel.hasOwnProperty('state')) {
-                        mergedModel['state'] = {};
-                    }
-                    if (!mergedModel.state.hasOwnProperty('messageBox')) {
-                        mergedModel['state']['messageBox'] = {};
-                    }
-                    mergedModel['state']['messageBox']['title'] = quickModel['msgBox.title'];
-                    mergedModel['state']['messageBox']['message'] = quickModel['msgBox.msg'];
-                };
+                const tmpExtdInfo2 = await tmpExtdInfo;
+                const tmpGlobalVar2 = await tmpGlobalVar;
+                mergedModel = tmpExtdInfo2.data['result'];
+                mergedModel.global = tmpGlobalVar2.data['result'];
                 //check to see if the message count has increased then get the last disaply message and incorporate into patchModel
-                if(mergedModel.seqs.reply > node.dsfFullModel.seqs.reply){
-                    let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetMsgReq}`, { headers: {'Content-Type': 'application/json'}})]);
-                    mergedModel['state']['displayMessage'] = tmpDispMsg.data['result']['displayMessage'];
-                };
+                if(mergedModel.hasOwnProperty('seqs')){
+                    if(mergedModel.seqs.hasOwnProperty('reply')){
+                        if(mergedModel.seqs.reply > node.dsfFullModel.seqs.reply){
+                            let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetMsgReq}`, { headers: {'Content-Type': 'application/json'}})])
+                                .catch(function (error){
+                                    failedLogin("Error getting msg data = " + error.toJSON(), "Duet");
+                                });
+                            const tmpDispMsg2 = await tmpDispMsg;
+                            tmpMsgModel = tmpDispMsg2.data['result'];
+                            if(tmpMsgModel.hasOwnProperty('displayMessage')){
+                                mergedModel.state.displayMessage = tmpMsgModel.displayMessage;
+                            }
+                            if(tmpMsgModel.hasOwnProperty('messageBox')) {
+                                if(tmpMsgModel.messageBox != null) {
+                                    if(tmpMsgModel.messageBox.hasOwnProperty('message')) {
+                                        //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
+                                        if(!mergedModel.state.hasOwnProperty('messageBox')){
+                                            mergedModel.state.messageBox = {message: null, title: null}
+                                        }
+                                        mergedModel.state.messageBox.message = tmpMsgModel.messageBox.message; 
+                                    } 
+                                    if(tmpMsgModel.messageBox.hasOwnProperty('title')) {
+                                        //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
+                                        if(!mergedModel.state.hasOwnProperty('messageBox')){
+                                            mergedModel.state.messageBox = {message: null, title: null}
+                                        }
+                                        mergedModel.state.messageBox.title = tmpMsgModel.messageBox.title;
+                                    }
+                                }
+                            }
+                        }else {
+                            //remove previous msgs if they exist
+                            mergedModel.state.displayMessage = "";
+                            mergedModel.state.messageBox =  {message: null, title: null};
+                        }
+                    }  
+                }else{
+                    //remove previous msgs if they exist 
+                    mergedModel.state.displayMessage = "";
+                    mergedModel.state.messageBox =  {message: null, title: null};
+                }
                 patchModel = diff(node.dsfFullModel, mergedModel);
                 patchModel = cleanDeep(patchModel);
                 mergedModel = merge(node.dsfFullModel, mergedModel, { arrayMerge : combineMerge });
-                //remove old display msgs after expired    
-                if(!quickModel.hasOwnProperty('msgBox.timeout')) {
-                    //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
-                    mergedModel['state']['messageBox']['title'] = null;
-                    mergedModel['state']['messageBox']['message'] = null; 
-                }    
                 msg = {
                     topic:"dsfModel", 
                     payload: {
@@ -507,6 +529,7 @@ module.exports = function(RED) {
                     },
                     dsf: {monitorMode: "Duet"}
                 };
+                
                 node.dsfFullModel = mergedModel;
                 mergedModel = null;
                 node.send(msg);
@@ -540,21 +563,23 @@ module.exports = function(RED) {
             failedLogin("No server defined or cannot connect", "NONE");
         };
 
-        node.on('close', function() {
-            // close ws
-            try{
-                node.dsfWS.close();
+        node.on('close', function() {           
+            if(node.server.btype == "DSF"){
+                try{
+                    // close ws
+                    node.nodeRun = false; 
+                    node.dsfWS.close();
+                }
+                catch(e){}
+            }else{
                 //try to clear async timers just in case
                 try{
+                    node.nodeRun = false;
                     clearIntervalAsync(timer1);
                     timer1 = null;
-                    if(node.server.btype == "Duet"){
-                        axios.get(`${node.duetLogoff}`, { headers: {'Content-Type': 'application/json'}});
-                    }
-                }catch{}
-            }
-            catch {
-                //do nothing
+                    axios.get(`${node.duetLogoff}`, { headers: {'Content-Type': 'application/json'}});
+                }
+                catch(e){}
             }
         });
 

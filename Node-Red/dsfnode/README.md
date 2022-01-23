@@ -1,7 +1,7 @@
 # dsfnode
 **dsfnode** is a set of nodes which enable Node-Red to interface with the [Duet Software Framework](https://github.com/Duet3D/DuetSoftwareFramework) (v3+) running on an SBC, or a network enabled Duet v2/3 (or compatible) control board running v3+ RepRap firmware.  
 
-The RepRap firmware labels anything operated by itself a 'Machine', and constructs a [Machine Model](https://duet3d.dozuki.com/Wiki/Object_Model_of_RepRapFirmware) representing the current state of the entire Machine and its associated components. A network enabled Duet control board, or DSF running on an SBC, can output the Machine Model to a client via a web-socket or rest api. **dsfnode** enables the connection and provides a set of nodes to use the Machine Model in Node-Red. The Machine Model is a JSON object representing the current state of the Machine which is constantly updated by DSF and passed to the connected web-socket client.  
+The RepRap firmware labels anything operated by itself a 'Machine', and constructs a [Object Model](https://duet3d.dozuki.com/Wiki/Object_Model_of_RepRapFirmware) representing the current state of the entire Machine and its associated components. A network enabled Duet control board, or DSF running on an SBC, can output the Object Model to a client via a web-socket or rest api. **dsfnode** enables the connection and provides a set of nodes to use the Object Model in Node-Red. The Object Model is a JSON object representing the current state of the Machine which is constantly updated by DSF and passed to the connected web-socket client.  
  
 **dsfnode has 5 nodes:**
 
@@ -13,9 +13,10 @@ The RepRap firmware labels anything operated by itself a 'Machine', and construc
 
 Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for detailed instructions on usage, and example flows.  
   
-**Note:** Duet control boards have connection/session limitations, and dsfnode consumes at least one of the available sessions, Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for more information. The **Duet** mode currently delivers a subset of the full machine model to reduce load on the control boards. If there is data that is missing please raise an issue and I will see if it can be added.
+**Note:** Duet control boards have connection/session limitations, and dsfnode consumes at least one of the available sessions, Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for more information. The **Duet** mode currently delivers a subset of the full Object Model to reduce load on the control boards. If there is data that is missing please raise an issue and I will see if it can be added.
   
-**Change Log**   
+**Change Log**  
+V1.1.5 - Improved communication in Duet mode which should resolved rare issue where board could crash or fail to respond, plus fixed node not stopping on deploy when active.  
 V1.1.4 - Fixed issue with M117/M118 Messages not being included in the model when in Duet Mode  
 V1.1.3 - Added Global Variables to the Monitor Node  
 V1.1.2 - Added support for password protected connections (Note: passwords are in clear text as per Duet spec) & improved error handling.  
