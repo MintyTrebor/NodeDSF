@@ -16,6 +16,8 @@ Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on gi
 **Note:** Duet control boards have connection/session limitations, and dsfnode consumes at least one of the available sessions, Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for more information. The **Duet** mode currently delivers a subset of the full Object Model to reduce load on the control boards. If there is data that is missing please raise an issue and I will see if it can be added.
   
 **Change Log**  
+V1.1.7 - Better recovery handling for emergency stop situations and power failures. Further changes to M118 & M291 handling, General Bug Fixes.  
+V1.1.6 - For Node-Red V2+ & Tested on RepRapFirmware 3.4RC1. Changes to the way M118 & M291 are handled. General Bug Fixes.  
 V1.1.5 - Improved communication in Duet mode which should resolved rare issue where board could crash or fail to respond, plus fixed node not stopping on deploy when active.  
 V1.1.4 - Fixed issue with M117/M118 Messages not being included in the model when in Duet Mode  
 V1.1.3 - Added Global Variables to the Monitor Node  

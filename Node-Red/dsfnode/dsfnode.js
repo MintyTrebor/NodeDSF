@@ -109,7 +109,9 @@ module.exports = function(RED) {
             try{
                 var patchJSON = msg.payload.patchModel;
                 if(patchJSON){
+                    //console.log(patchJSON);
                     var matchInPatch = jp.query(patchJSON, (`$.${node.modelPath}`));
+                    //console.log(matchInPatch);
                     if(JSON.stringify(matchInPatch) != "[]"){
                         var matchVal = matchInPatch[0];
                         //we have a match so check if other conditions are met.
@@ -190,6 +192,10 @@ module.exports = function(RED) {
         this.duetEmptyModel = "";
         this.nodeRun = true;
         this.pollRate = this.server.bPollRate;
+        this.duetModeErr = false;
+        this.dsfModeErr = false;
+        this.restarting = false;
+        this.tmout = false;
         var node = this;
         var msg = null;
         var mergedModel = null;
@@ -201,16 +207,19 @@ module.exports = function(RED) {
         var timer1 = null;
         const merge = require('deepmerge')
         const axios = require('axios');
+        const duetPing = require('ping');
         const {setIntervalAsync, clearIntervalAsync} = require('set-interval-async/fixed');
         const cleanDeep = require('clean-deep');
+        axios.defaults.timeout = 1000;
+        //axios.defauts.timeoutErrorMessage = 'timeout';
 
         //validate pollRate
         if(!isNaN(Number(node.pollRate))){
-            if(Number(node.pollRate) <= 199){node.pollRate = 200};
+            if(Number(node.pollRate) <= 199){node.pollRate = 500};
             if(Number(node.pollRate) >= 7001){node.pollRate = 7000};
         } else{
             //not a number so set to default of 200ms
-            node.pollRate = 200;
+            node.pollRate = 500;
         };
 
         var failedLogin = function(e, monMode) {
@@ -275,133 +284,176 @@ module.exports = function(RED) {
             return destination
         };
 
-        var restartWS = function() {
-            msg = {
-                topic:"dsfModel", 
-                payload: null,
-                dsf: {
-                    monitorMode: "DSF",
-                    monitorError: "No server defined or cannot connect to DSF. Checking again in 10 seconds"
+        function restartDSFMode(){
+            setupDSFws();
+        }
+
+        async function startDSFInTen(){
+            try{
+                clearTimeout(node.tmout);
+                const resp2 = await doDuetPingCheck()
+                    .then(res => res)
+                    .catch(function (){
+                        failedLogin("Error Pinging DSF", "DSF");
+                        return {alive: false}
+                    });                
+                if(resp2.alive){
+                    if(node.nodeRun){
+                        node.dsfModeErr = false;
+                        setupDSFws();
+                    }
+                }else{
+                    failedLogin("Error connecting to DSF will try again in 10 Seconds", "DSF");
+                    setTimeout(() => {  
+                        if(node.nodeRun){
+                            restartDSFMode();
+                        }
+                        return;    
+                    }, 1000);
                 }
-            };
-            node.send(msg);
-        };
-        
+            }catch{}
+        }
+
         var setupDSFws = function() {                
             try{
                 if(node.nodeRun){
-                    node.dsfWS = new node.ws(node.wsurl);
-                }
-            }
-            catch(e){
-                restartWS();
-                if(node.nodeRun){
-                    setTimeout(() => {  setupDSFws(); }, 10000);
-                };
-            }
-            
-            node.dsfWS.on('error', function (){
-                restartWS();
-                if(node.nodeRun){
-                    setTimeout(() => {  setupDSFws(); }, 10000);
-                };
-            });
-            
-            node.dsfWS.on('open', function open() {
-                node.dsfWS.send('OK\n');
-            });
+                    node.dsfModeErr = false;
+                    const dsfWS = new node.ws(node.wsurl);
+                    
+                    function heartbeat() {
+                        clearTimeout(node.tmout);
+                        node.dsfModeErr = true;
+                        node.tmout = setTimeout(() => {
+                            try{dsfWS.terminate();}catch{}
+                            if(node.nodeRun){
+                                //restartWS();
+                                console.log("hartbeat restart")
+                                startDSFInTen()
+                            }
+                        }, 30000 + 1000);
+                    }
 
-            node.dsfWS.on('message', function incoming(data) {
-                if(node.nodeRun){
-                    msg = null;
-                    var mergedModel = null;
-                    var parsedData = null;
-                    if(node.dsfFirstMsg){
-                        //This is the first model return from dsf, so just output the full model only.
-                        node.dsfFullModel = JSON.parse(data);
-                        //add msg keys for use later
-                        node.dsfFullModel.state.messageBox = {
-                            title: null,
-                            message: null
-                        };
-                        msg = {
-                            topic:"dsfModel", 
-                            payload: {
-                                fullModel: node.dsfFullModel,
-                                patchModel: null,
-                                prevModel: null
-                            },
-                            dsf: {monitorMode: "DSF"}
-                        };
-                        node.send(msg);
-                        node.dsfWS.send('OK\n');
-                        node.dsfFirstMsg = false;
-                    } else {
-                        //merge the update with the model
-                        parsedData = JSON.parse(data);
-                        mergedModel = merge(node.dsfFullModel, parsedData, { arrayMerge : combineMerge });                       
-                        //check for msg.timeout if not there then clear any previous msg values (we need this to be statefull to allow for valid consecutive duplicate msg from DSF)
-                        //has to be a try/catch as keys may not always exist
-                        try {
-                            if(typeof parsedData.state !== "undefined") {
-                                if(typeof parsedData.state.messageBox !== "undefined"){
-                                    if(typeof parsedData.state.messageBox.timeout !== "undefined"){
-                                        bHasMsg = true;
-                                    };
+                    dsfWS.on('error', function (){
+                        console.log("socket error")
+                        node.dsfModeErr = true;
+                        clearTimeout(node.tmout);
+                        try{dsfWS.terminate();}catch{}
+                        if(node.nodeRun){
+                            //restartWS();
+                            startDSFInTen()
+                        }
+                    });
+                    
+                    dsfWS.on('open', function open() {
+                        node.dsfModeErr = false;
+                        dsfWS.send('OK\n');
+                        heartbeat();
+                    });
+        
+                    dsfWS.on('close', function open() {
+                        console.log("socket close")
+                        if(!node.nodeRun){
+                            clearTimeout(node.tmout);
+                        }
+                    });
+        
+                    dsfWS.on('message', function incoming(data) {
+                        heartbeat(); 
+                        if(node.nodeRun){
+                            msg = null;
+                            var mergedModel = null;
+                            var parsedData = null;
+                            if(node.dsfFirstMsg){
+                                //This is the first model return from dsf, so just output the full model only.
+                                node.dsfFullModel = JSON.parse(data);
+                                //add msg keys for use later
+                                node.dsfFullModel.state.messageBox = {
+                                    title: null,
+                                    message: null
                                 };
-                            };
-                            if (bHasMsg == false){
-                                //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values if they exist
-                                if(mergedModel.state.hasOwnProperty('messageBox')){
-                                    mergedModel.state.messageBox = {
-                                        title: null,
-                                        message: null
-                                    };
+                                msg = {
+                                    topic:"dsfModel", 
+                                    payload: {
+                                        fullModel: node.dsfFullModel,
+                                        patchModel: null,
+                                        prevModel: null
+                                    },
+                                    dsf: {monitorMode: "DSF"}
                                 };
+                                node.send(msg);
+                                dsfWS.send('OK\n');
+                                node.dsfFirstMsg = false;
                             } else {
-                                bHasMsg = false;
+                                //merge the update with the model
+                                parsedData = JSON.parse(data);
+                                mergedModel = merge(node.dsfFullModel, parsedData, { arrayMerge : combineMerge });                       
+                                //check for msg.timeout if not there then clear any previous msg values (we need this to be statefull to allow for valid consecutive duplicate msg from DSF)
+                                //has to be a try/catch as keys may not always exist
+                                try {
+                                    if(typeof parsedData.state !== "undefined") {
+                                        if(typeof parsedData.state.messageBox !== "undefined"){
+                                            if(typeof parsedData.state.messageBox.timeout !== "undefined"){
+                                                bHasMsg = true;
+                                            };
+                                        };
+                                    };
+                                    if (bHasMsg == false){
+                                        //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values if they exist
+                                        if(mergedModel.state.hasOwnProperty('messageBox')){
+                                            mergedModel.state.messageBox = {
+                                                title: null,
+                                                message: null
+                                            };
+                                        };
+                                    } else {
+                                        bHasMsg = false;
+                                    };
+                                }
+                                catch {
+                                    //do nothing
+                                }                           
+                                msg = {
+                                    topic:"dsfModel", 
+                                    payload: {
+                                        fullModel: mergedModel,
+                                        patchModel: parsedData,
+                                        prevModel:  node.dsfFullModel
+                                    },
+                                    dsf: {monitorMode: "DSF"}
+                                };
+                                node.send(msg);
+                                node.dsfFullModel = mergedModel;
+                                mergedModel = null;
+                                dsfWS.send('OK\n');
                             };
                         }
-                        catch {
-                            //do nothing
-                        }                           
-                        msg = {
-                            topic:"dsfModel", 
-                            payload: {
-                                fullModel: mergedModel,
-                                patchModel: parsedData,
-                                prevModel:  node.dsfFullModel
-                            },
-                            dsf: {monitorMode: "DSF"}
-                        };
-                        node.send(msg);
-                        node.dsfFullModel = mergedModel;
-                        mergedModel = null;
-                        node.dsfWS.send('OK\n');
-                    };
-                } else {
-                    try{
-                        node.dsfWS.close();
-                    }
-                    catch {
-                        //do nothing
-                    }
+                    });
                 }
-            });
-        };
+            }catch(e){
+                console.log(e)
+                try{dsfWS.terminate();}catch{}
+                if(node.nodeRun){
+                    //restartWS();
+                    startDSFInTen()
+                }
+            }               
+        };    
+            
 
         async function duetModel() {
             msg = null;
             mergedModel = null;
             parsedData = null;
             node.dsfFullModel = null;
-            
-            //This is the first model return from dsf, so just output the full model only.
             try{
                 let tmpDate = timeToStr(new Date());
                 let [tmpLogin] = await Promise.all([
                     axios.get(`${node.duetUrl}${node.duetLogin}${tmpDate}`, { headers: {'Content-Type': 'application/json'}})
-                ]);
+                ]).catch(function (error){
+                    failedLogin("Error logging into board = " + error, "Duet");
+                    node.duetModeErr = true;
+                    return false;
+                }); ;
                 let tmpLogErr = tmpLogin.data['err'];
                 if (tmpLogErr != 0){
                     if (tmpLogErr == 1) {
@@ -418,7 +470,11 @@ module.exports = function(RED) {
                         axios.get(`${node.duetUrl}${node.duetBIReq}`, { headers: {'Content-Type': 'application/json'}}),
                         axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
                         axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
-                    ]); 
+                    ]).catch(function (error){
+                        console.log("Error getting initial data = " + error);
+                        node.duetModeErr = true;
+                        return false;
+                    }); 
                     const tmpEmptyModel2 = await tmpEmptyModel;
                     const tmpBoardInfo2 = await tmpBoardInfo;
                     const tmpGlobalVar2 = await tmpGlobalVar;
@@ -448,11 +504,10 @@ module.exports = function(RED) {
                     node.dsfFirstMsg = false;
                     node.send(msg);
                     return true;
-                };
-            }
-            catch(e){
-                
-                failedLogin("Error getting data duetModel = " + e.message, "Duet");
+                }
+            }catch(e){                
+                console.log("Error connecting/getting data duetModel = " + e.message);
+                node.duetModeErr = true;
                 return false;
             }
         }; 
@@ -462,91 +517,215 @@ module.exports = function(RED) {
             msg = null;
             patchModel = null;
             tmpMsgModel = null;
-            if(node.dsfFirstMsg && node.nodeRun){
-                //just a dirty check to ensure we have run the required first step
-                await duetModel();
-            }
-            try{
-            let [tmpExtdInfo, tmpGlobalVar] = await Promise.all([
-                    axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
-                    axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
-                ]);
-                const tmpExtdInfo2 = await tmpExtdInfo;
-                const tmpGlobalVar2 = await tmpGlobalVar;
-                mergedModel = tmpExtdInfo2.data['result'];
-                mergedModel.global = tmpGlobalVar2.data['result'];
-                //check to see if the message count has increased then get the last disaply message and incorporate into patchModel
-                if(mergedModel.hasOwnProperty('seqs')){
-                    if(mergedModel.seqs.hasOwnProperty('reply')){
-                        if(mergedModel.seqs.reply > node.dsfFullModel.seqs.reply){
-                            let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetMsgReq}`, { headers: {'Content-Type': 'application/json'}})])
-                                .catch(function (error){
-                                    failedLogin("Error getting msg data = " + error.toJSON(), "Duet");
-                                });
-                            const tmpDispMsg2 = await tmpDispMsg;
-                            tmpMsgModel = tmpDispMsg2.data['result'];
-                            if(tmpMsgModel.hasOwnProperty('displayMessage')){
-                                mergedModel.state.displayMessage = tmpMsgModel.displayMessage;
-                            }
-                            if(tmpMsgModel.hasOwnProperty('messageBox')) {
-                                if(tmpMsgModel.messageBox != null) {
-                                    if(tmpMsgModel.messageBox.hasOwnProperty('message')) {
-                                        //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
-                                        if(!mergedModel.state.hasOwnProperty('messageBox')){
-                                            mergedModel.state.messageBox = {message: null, title: null}
+            if(!node.dsfFirstMsg && node.nodeRun && !node.duetModeErr){
+                try{
+                let [tmpExtdInfo, tmpGlobalVar] = await Promise.all([
+                        axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
+                        axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
+                    ]).catch(function (error){
+                        //failedLogin("Error getting main msg data = " + error.toJSON(), "Duet");
+                        node.duetModeErr = true;
+                        return false;
+                    });
+                    const tmpExtdInfo2 = await tmpExtdInfo;
+                    const tmpGlobalVar2 = await tmpGlobalVar;
+                    mergedModel = tmpExtdInfo2.data['result'];
+                    mergedModel.global = tmpGlobalVar2.data['result'];
+                    //check to see if the message count has increased then get the last disaply message and incorporate into patchModel
+                    if(mergedModel.hasOwnProperty('seqs')){
+                        if(mergedModel.seqs.hasOwnProperty('reply')){
+                            if(mergedModel.seqs.reply > node.dsfFullModel.seqs.reply){
+                                if(mergedModel.seqs.state > node.dsfFullModel.seqs.state){
+                                    //when the state also increases use the state req
+                                    let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetMsgReq}`, { headers: {'Content-Type': 'application/json'}})])
+                                        .catch(function (error){
+                                            //failedLogin("Error getting state data = " + error.toJSON(), "Duet");
+                                            node.duetModeErr = true;
+                                            return false;
+                                        });
+                                    const tmpDispMsg2 = await tmpDispMsg;
+                                    tmpMsgModel = tmpDispMsg2.data.result;
+                                    if(tmpMsgModel.hasOwnProperty('messageBox')) {
+                                        if(tmpMsgModel.messageBox != null) {
+                                            if(tmpMsgModel.messageBox.hasOwnProperty('message')) {
+                                                //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
+                                                if(!mergedModel.state.hasOwnProperty('messageBox')){
+                                                    mergedModel.state.messageBox = {message: null, title: null}
+                                                }
+                                                mergedModel.state.messageBox.message = tmpMsgModel.messageBox.message; 
+                                            } 
+                                            if(tmpMsgModel.messageBox.hasOwnProperty('title')) {
+                                                //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
+                                                if(!mergedModel.state.hasOwnProperty('messageBox')){
+                                                    mergedModel.state.messageBox = {message: null, title: null}
+                                                }
+                                                mergedModel.state.messageBox.title = tmpMsgModel.messageBox.title;
+                                            }
                                         }
-                                        mergedModel.state.messageBox.message = tmpMsgModel.messageBox.message; 
-                                    } 
-                                    if(tmpMsgModel.messageBox.hasOwnProperty('title')) {
-                                        //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
-                                        if(!mergedModel.state.hasOwnProperty('messageBox')){
-                                            mergedModel.state.messageBox = {message: null, title: null}
-                                        }
-                                        mergedModel.state.messageBox.title = tmpMsgModel.messageBox.title;
                                     }
+                                }else{
+                                    let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}/rr_reply`, { headers: {'Content-Type': 'application/json'}})])
+                                        .catch(function (error){
+                                            //failedLogin("Error getting displayMsg data = " + error.toJSON(), "Duet");
+                                            node.duetModeErr = true;
+                                            return false;
+                                        });
+                                    const tmpDispMsg2 = await tmpDispMsg;
+                                    mergedModel.state.displayMessage = tmpDispMsg2.data.trim();
                                 }
+                            }else {
+                                //remove previous msgs if they exist
+                                mergedModel.state.displayMessage = "";
+                                mergedModel.state.messageBox =  {message: null, title: null};
                             }
-                        }else {
-                            //remove previous msgs if they exist
-                            mergedModel.state.displayMessage = "";
-                            mergedModel.state.messageBox =  {message: null, title: null};
-                        }
-                    }  
-                }else{
-                    //remove previous msgs if they exist 
-                    mergedModel.state.displayMessage = "";
-                    mergedModel.state.messageBox =  {message: null, title: null};
+                        }  
+                    }else{
+                        //remove previous msgs if they exist 
+                        mergedModel.state.displayMessage = "";
+                        mergedModel.state.messageBox =  {message: null, title: null};
+                    }
+                    patchModel = diff(node.dsfFullModel, mergedModel);
+                    patchModel = cleanDeep(patchModel);
+                    mergedModel = merge(node.dsfFullModel, mergedModel, { arrayMerge : combineMerge });
+                    msg = {
+                        topic:"dsfModel", 
+                        payload: {
+                            fullModel: mergedModel,
+                            patchModel: patchModel,
+                            prevModel:  node.dsfFullModel
+                        },
+                        dsf: {monitorMode: "Duet"}
+                    };
+                    
+                    node.dsfFullModel = mergedModel;
+                    mergedModel = null;
+                    node.send(msg);
                 }
-                patchModel = diff(node.dsfFullModel, mergedModel);
-                patchModel = cleanDeep(patchModel);
-                mergedModel = merge(node.dsfFullModel, mergedModel, { arrayMerge : combineMerge });
-                msg = {
-                    topic:"dsfModel", 
-                    payload: {
-                        fullModel: mergedModel,
-                        patchModel: patchModel,
-                        prevModel:  node.dsfFullModel
-                    },
-                    dsf: {monitorMode: "Duet"}
-                };
-                
-                node.dsfFullModel = mergedModel;
-                mergedModel = null;
-                node.send(msg);
+                catch(e){
+                    //console.warn("Error: " +e)
+                    //failedLogin("Error getting data duetPartModel = " + e, "Duet");
+                    node.duetModeErr = true;
+                    return false;
+                }
+                return true;
+            }else{
+                return false;
             }
-            catch(e){
-                failedLogin("Error getting data duetPartModel = " + e, "Duet");
-            }
-            return true;
         };
 
-        async function nodeFirstStart() {
-            if (duetModel()){
+        function stopDuetMode(){
+            node.nodeRun = false;
+            console.log("NodeDSF Stopping")
+            //stop the polling
+            try{
+                if(timer1){clearIntervalAsync(timer1);}
+            }catch{}
+            timer1 = null;
+            let lout = null;
+            if(!node.duetModeErr){
+                //normal shutdown so end sessions etc
+                try{
+                    lout = axios.get(`${node.duetLogoff}`, { headers: {'Content-Type': 'application/json'}})
+                    .then(res => res)
+                    .catch(function (){
+                        node.dsfFirstMsg = true;
+                        node.duetModeErr = false;
+                    });
+                }catch{}
+                node.dsfFirstMsg = true;
+                node.duetModeErr = false;
+            }else{
+                //
+            }
+
+        }
+
+        function restartDuetMode(){
+            node.restarting = true;
+            //stop the polling
+            console.log("NodeDSF Restarting")
+            try{
+                if(timer1){clearIntervalAsync(timer1);}
+            }catch{}
+            timer1 = null;
+            node.dsfFirstMsg = true;
+            node.duetModeErr = false;
+            node.restarting = false;
+            nodeFirstStart();
+        }
+
+        async function startDuetMode(){
+            const bGotFirstModel = duetModel().then(res => res);
+            let dpm = false;
+            if(bGotFirstModel && !node.duetModeErr){
+                //run the partModel
                 timer1 = setIntervalAsync(function() {
-                    if(node.nodeRun) {
-                        duetPartModel();
-                    };
+                    if(node.nodeRun && !node.duetModeErr) {
+                        dpm = duetPartModel()
+                        .then(res => res)
+                        .catch(function (){
+                            failedLogin("Error Getting Poll Data", "Duet");
+                        });
+                    }else{
+                        if(node.nodeRun){
+                            restartDuetMode();
+                        }
+                        else{
+                            stopDuetMode();
+                        }
+                    }
                 }, Number(node.pollRate));
+            }else{
+                if(node.nodeRun && !node.restarting){
+                    restartDuetMode();
+                }
+            }
+
+        }
+
+        async function doDuetPingCheck(){
+            try{
+                var host = node.server.server;
+                const resp1 = await duetPing.promise.probe(host, {
+                    timeout: 2,
+                })
+                .then(res => res)
+                .catch(function (){
+                    failedLogin("Error Pinging board", "Duet");
+                    return {alive: false};
+                });
+                return resp1;
+            }catch{
+
+            }
+        }
+        
+        async function nodeFirstStart() {
+            try{
+                const resp2 = await doDuetPingCheck()
+                    .then(res => res)
+                    .catch(function (){
+                        failedLogin("Error Pinging board", "Duet");
+                        return {alive: false}
+                    });                
+                if(resp2.alive){
+                    //start montior
+                    node.duetModeErr = false;
+                    node.dsfFirstMsg = true;
+                    startDuetMode()
+                }else{
+                    failedLogin("Error connecting to Duet will try again in 10 Seconds", "Duet");
+                    setTimeout(() => {  
+                        if(node.nodeRun){
+                            restartDuetMode();
+                        }else{
+                            stopDuetMode();
+                        }
+                        return;    
+                    }, 10000);
+                }
+            }catch{
+
             }
         }
 
@@ -568,18 +747,20 @@ module.exports = function(RED) {
                 try{
                     // close ws
                     node.nodeRun = false; 
-                    node.dsfWS.close();
+                    console.log("Stopping NodeDSF")
+                    try{dsfWS.terminate();}catch{}
                 }
-                catch(e){}
+                catch(e){
+                    console.log(e);
+                }
             }else{
                 //try to clear async timers just in case
                 try{
-                    node.nodeRun = false;
-                    clearIntervalAsync(timer1);
-                    timer1 = null;
-                    axios.get(`${node.duetLogoff}`, { headers: {'Content-Type': 'application/json'}});
+                    stopDuetMode();
                 }
-                catch(e){}
+                catch(e){
+                    console.log(e);
+                }
             }
         });
 
@@ -602,17 +783,25 @@ module.exports = function(RED) {
                     };
                 }
                 else if(toggle == "OFF"){
-                    node.nodeRun = false;
-                    try{
-                        clearIntervalAsync(timer1);
-                        timer1 = null;
-                        if(node.server.btype == "Duet"){
-                            axios.get(`${node.duetLogoff}`, { headers: {'Content-Type': 'application/json'}});
-                        }    
+                    if(node.server.btype == "DSF"){
+                        try{
+                            // close ws
+                            node.nodeRun = false; 
+                            console.log("Stopping NodeDSF")
+                            try{dsfWS.terminate();}catch{}
+                        }
+                        catch(e){
+                            console.log(e);
+                        }
+                    }else{
+                        node.nodeRun = false;
+                        try{
+                            stopDuetMode();  
+                        }
+                        catch(e){
+                            console.log(e);
+                        }
                     }
-                    catch(e){
-                        failedLogin("Error Stopping Node. Err = " + e, node.server.btype);
-                    };
                 }
             }
             catch(e) {
@@ -727,7 +916,7 @@ module.exports = function(RED) {
         });
         node.on('close', function() {
             // close ws
-            node.dsfWS.close()
+            //node.dsfWS.close()
         });
     };
     RED.nodes.registerType("dsf-command", dsfCommandNode);
