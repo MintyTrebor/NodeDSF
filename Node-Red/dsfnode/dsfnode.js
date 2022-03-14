@@ -291,10 +291,12 @@ module.exports = function(RED) {
         async function startDSFInTen(){
             try{
                 clearTimeout(node.tmout);
+                node.status({fill:"yellow",shape:"dot",text:"No Connection"});
                 const resp2 = await doDuetPingCheck()
                     .then(res => res)
                     .catch(function (){
                         failedLogin("Error Pinging DSF", "DSF");
+                        node.status({fill:"yellow",shape:"dot",text:"No Response"});
                         return {alive: false}
                     });                
                 if(resp2.alive){
@@ -327,14 +329,15 @@ module.exports = function(RED) {
                             try{dsfWS.terminate();}catch{}
                             if(node.nodeRun){
                                 //restartWS();
-                                console.log("hartbeat restart")
+                                //console.log("hartbeat restart")
                                 startDSFInTen()
                             }
                         }, 30000 + 1000);
                     }
 
                     dsfWS.on('error', function (){
-                        console.log("socket error")
+                        //console.log("socket error")
+                        node.status({fill:"yellow",shape:"dot",text:"disconnected"});
                         node.dsfModeErr = true;
                         clearTimeout(node.tmout);
                         try{dsfWS.terminate();}catch{}
@@ -346,12 +349,13 @@ module.exports = function(RED) {
                     
                     dsfWS.on('open', function open() {
                         node.dsfModeErr = false;
+                        node.status({fill:"green",shape:"dot",text:"connected"});
                         dsfWS.send('OK\n');
                         heartbeat();
                     });
         
                     dsfWS.on('close', function open() {
-                        console.log("socket close")
+                        //console.log("socket close")
                         if(!node.nodeRun){
                             clearTimeout(node.tmout);
                         }
@@ -451,6 +455,7 @@ module.exports = function(RED) {
                     axios.get(`${node.duetUrl}${node.duetLogin}${tmpDate}`, { headers: {'Content-Type': 'application/json'}})
                 ]).catch(function (error){
                     failedLogin("Error logging into board = " + error, "Duet");
+                    node.status({fill:"yellow",shape:"dot",text:"error logging into board"});
                     node.duetModeErr = true;
                     return false;
                 }); ;
@@ -471,7 +476,8 @@ module.exports = function(RED) {
                         axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
                         axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
                     ]).catch(function (error){
-                        console.log("Error getting initial data = " + error);
+                        //console.log("Error getting initial data = " + error);
+                        node.status({fill:"yellow",shape:"dot",text:"error"});
                         node.duetModeErr = true;
                         return false;
                     }); 
@@ -502,11 +508,13 @@ module.exports = function(RED) {
                         dsf: {monitorMode: "Duet"}
                     };
                     node.dsfFirstMsg = false;
+                    node.status({fill:"green",shape:"dot",text:"connected"});
                     node.send(msg);
                     return true;
                 }
             }catch(e){                
-                console.log("Error connecting/getting data duetModel = " + e.message);
+                //console.log("Error connecting/getting data duetModel = " + e.message);
+                node.status({fill:"yellow",shape:"dot",text:"error"});
                 node.duetModeErr = true;
                 return false;
             }
@@ -524,6 +532,7 @@ module.exports = function(RED) {
                         axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
                     ]).catch(function (error){
                         //failedLogin("Error getting main msg data = " + error.toJSON(), "Duet");
+                        node.status({fill:"yellow",shape:"dot",text:"error"});
                         node.duetModeErr = true;
                         return false;
                     });
@@ -604,6 +613,7 @@ module.exports = function(RED) {
                 catch(e){
                     //console.warn("Error: " +e)
                     //failedLogin("Error getting data duetPartModel = " + e, "Duet");
+                    node.status({fill:"yellow",shape:"dot",text:"error"});
                     node.duetModeErr = true;
                     return false;
                 }
@@ -615,7 +625,8 @@ module.exports = function(RED) {
 
         function stopDuetMode(){
             node.nodeRun = false;
-            console.log("NodeDSF Stopping")
+            //console.log("NodeDSF Stopping")
+            node.status({fill:"red",shape:"dot",text:"Stopped"});
             //stop the polling
             try{
                 if(timer1){clearIntervalAsync(timer1);}
@@ -634,6 +645,7 @@ module.exports = function(RED) {
                 }catch{}
                 node.dsfFirstMsg = true;
                 node.duetModeErr = false;
+                node.status({fill:"red",shape:"dot",text:"Stopped"});
             }else{
                 //
             }
@@ -643,7 +655,8 @@ module.exports = function(RED) {
         function restartDuetMode(){
             node.restarting = true;
             //stop the polling
-            console.log("NodeDSF Restarting")
+            //console.log("NodeDSF Restarting")
+            node.status({fill:"green",shape:"ring",text:"starting"});
             try{
                 if(timer1){clearIntervalAsync(timer1);}
             }catch{}
@@ -655,6 +668,7 @@ module.exports = function(RED) {
         }
 
         async function startDuetMode(){
+            node.status({fill:"green",shape:"ring",text:"starting"});
             const bGotFirstModel = duetModel().then(res => res);
             let dpm = false;
             if(bGotFirstModel && !node.duetModeErr){
@@ -702,6 +716,7 @@ module.exports = function(RED) {
         
         async function nodeFirstStart() {
             try{
+                node.status({fill:"green",shape:"ring",text:"starting"});
                 const resp2 = await doDuetPingCheck()
                     .then(res => res)
                     .catch(function (){
@@ -730,6 +745,7 @@ module.exports = function(RED) {
         }
 
         //run the node
+        node.status({fill:"red",shape:"dot",text:"Stopped"});
         if (node.server) {          
             if(node.autoStart){
                 if(node.server.btype == "DSF"){
@@ -743,15 +759,16 @@ module.exports = function(RED) {
         };
 
         node.on('close', function() {           
+            node.status({fill:"red",shape:"dot",text:"Stopped"});
             if(node.server.btype == "DSF"){
                 try{
                     // close ws
                     node.nodeRun = false; 
-                    console.log("Stopping NodeDSF")
+                    //console.log("Stopping NodeDSF")
                     try{dsfWS.terminate();}catch{}
                 }
                 catch(e){
-                    console.log(e);
+                   console.log(e);
                 }
             }else{
                 //try to clear async timers just in case
@@ -769,6 +786,7 @@ module.exports = function(RED) {
             try{
                 let toggle = msg.payload.monitorState;
                 if(toggle == "ON"){
+                    node.status({fill:"green",shape:"ring",text:"starting"});
                     node.nodeRun = true;
                     node.dsfFirstMsg = true;
                     if(node.server.btype == "DSF"){
@@ -783,11 +801,12 @@ module.exports = function(RED) {
                     };
                 }
                 else if(toggle == "OFF"){
+                    node.status({fill:"red",shape:"dot",text:"Stopped"});
                     if(node.server.btype == "DSF"){
                         try{
                             // close ws
                             node.nodeRun = false; 
-                            console.log("Stopping NodeDSF")
+                            //console.log("Stopping NodeDSF")
                             try{dsfWS.terminate();}catch{}
                         }
                         catch(e){
@@ -802,6 +821,7 @@ module.exports = function(RED) {
                             console.log(e);
                         }
                     }
+                    node.status({fill:"red",shape:"dot",text:"Stopped"});
                 }
             }
             catch(e) {
@@ -811,6 +831,7 @@ module.exports = function(RED) {
                     monitorError: "No monitorState specified or Uncaught Error : err = " + e
                 }
                 node.send(msg);
+                node.status({fill:"red",shape:"dot",text:"Stopped"});
             }
         });
     };

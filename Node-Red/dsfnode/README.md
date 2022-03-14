@@ -1,5 +1,5 @@
 # dsfnode
-**dsfnode** is a set of nodes which enable Node-Red to interface with the [Duet Software Framework](https://github.com/Duet3D/DuetSoftwareFramework) (v3+) running on an SBC, or a network enabled Duet v2/3 (or compatible) control board running v3+ RepRap firmware.  
+**dsfnode** is a set of nodes which enable Node-Red to interface with the [Duet Software Framework](https://github.com/Duet3D/DuetSoftwareFramework) (v3+) running on an SBC, or a network enabled Duet v2/3 (or compatible) control board running v3.3+ RepRap firmware.  
 
 The RepRap firmware labels anything operated by itself a 'Machine', and constructs a [Object Model](https://duet3d.dozuki.com/Wiki/Object_Model_of_RepRapFirmware) representing the current state of the entire Machine and its associated components. A network enabled Duet control board, or DSF running on an SBC, can output the Object Model to a client via a web-socket or rest api. **dsfnode** enables the connection and provides a set of nodes to use the Object Model in Node-Red. The Object Model is a JSON object representing the current state of the Machine which is constantly updated by DSF and passed to the connected web-socket client.  
  
@@ -13,9 +13,10 @@ The RepRap firmware labels anything operated by itself a 'Machine', and construc
 
 Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for detailed instructions on usage, and example flows.  
   
-**Note:** Duet control boards have connection/session limitations, and dsfnode consumes at least one of the available sessions, Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for more information. The **Duet** mode currently delivers a subset of the full Object Model to reduce load on the control boards. If there is data that is missing please raise an issue and I will see if it can be added.
+**Note:** Duet control boards have connection/session limitations, and dsfnode consumes at least one of the available sessions. Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for more information. When operating in Duet mode it is not recommended to have the DWC web interface open on the same computer running **dsfnode**/node-red. The **Duet** mode currently delivers a subset of the full Object Model to reduce load on the control boards. If there is data that is missing please raise an issue and I will see if it can be added.
   
 **Change Log**  
+V1.1.8 - Added status indicators to monitor node.  
 V1.1.7 - Better recovery handling for emergency stop situations and power failures. Further changes to M118 & M291 handling, General Bug Fixes.  
 V1.1.6 - For Node-Red V2+ & Tested on RepRapFirmware 3.4RC1. Changes to the way M118 & M291 are handled. General Bug Fixes.  
 V1.1.5 - Improved communication in Duet mode which should resolved rare issue where board could crash or fail to respond, plus fixed node not stopping on deploy when active.  
