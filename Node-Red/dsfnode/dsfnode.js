@@ -729,7 +729,7 @@ module.exports = function(RED) {
                     node.dsfFirstMsg = true;
                     startDuetMode()
                 }else{
-                    failedLogin("Error connecting to Duet will try again in 10 Seconds", "Duet");
+                    failedLogin("Error connecting to Duet. Either the board is turned off, or unreachable by NodeRed ping. Use the Ping node to check if your Duet is reachable from NodeRed. The system will try to connect again in 10 seconds", "Duet");
                     setTimeout(() => {  
                         if(node.nodeRun){
                             restartDuetMode();
