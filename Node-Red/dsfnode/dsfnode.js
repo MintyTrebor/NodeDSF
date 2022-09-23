@@ -235,27 +235,32 @@ module.exports = function(RED) {
         };
 
         function diff(obj1, obj2) {
-            const result = {};
-            if (Object.is(obj1, obj2)) {
-                return undefined;
-            }
-            if (!obj2 || typeof obj2 !== 'object') {
-                return obj2;
-            }
-            Object.keys(obj1 || {}).concat(Object.keys(obj2 || {})).forEach(key => {
-                if(obj2[key] !== obj1[key] && !Object.is(obj1[key], obj2[key])) {
-                    result[key] = obj2[key];
+            try{
+                const result = {};
+                if (Object.is(obj1, obj2)) {
+                    return undefined;
                 }
-                if(typeof obj2[key] === 'object' && typeof obj1[key] === 'object') {
-                    const value = diff(obj1[key], obj2[key]);
-                    if (value !== undefined) {
-                        if (value != null && value != ''){
-                            result[key] = value;
+                if (!obj2 || typeof obj2 !== 'object') {
+                    return obj2;
+                }
+                Object.keys(obj1 || {}).concat(Object.keys(obj2 || {})).forEach(key => {
+                    if(obj2[key] !== obj1[key] && !Object.is(obj1[key], obj2[key])) {
+                        result[key] = obj2[key];
+                    }
+                    if(typeof obj2[key] === 'object' && typeof obj1[key] === 'object') {
+                        const value = diff(obj1[key], obj2[key]);
+                        if (value !== undefined) {
+                            if (value != null && value != ''){
+                                result[key] = value;
+                            }
                         }
                     }
-                }
-            });
-            return result;
+                });
+                return result;
+            }catch(e){
+                //console.log("diff error:", e)
+                return obj2;
+            }
         };
         
         var timeToStr = function (time) {
@@ -413,8 +418,9 @@ module.exports = function(RED) {
                                         bHasMsg = false;
                                     };
                                 }
-                                catch {
+                                catch(e) {
                                     //do nothing
+                                    //console.log("dsf patch error:", e)
                                 }                           
                                 msg = {
                                     topic:"dsfModel", 
@@ -434,7 +440,7 @@ module.exports = function(RED) {
                     });
                 }
             }catch(e){
-                console.log(e)
+                //console.log(e)
                 try{dsfWS.terminate();}catch{}
                 if(node.nodeRun){
                     //restartWS();
@@ -492,6 +498,10 @@ module.exports = function(RED) {
                     mergedModel.state.messageBox['title'] = null;
                     mergedModel.state.messageBox['message'] = null;
                     mergedModel['seqs']['reply'] = 0;
+                    mergedModel['seqs']['state'] = 0;
+                    mergedModel['seqs']['job'] = 0;
+                    mergedModel['seqs']['global'] = 0;
+                    mergedModel['seqs']['volumes'] = 0;
                     mergedModel['state']['displayMessage'] = null;
                     node.duetEmptyModel = tmpEmptyModel2.data['result'];
                     mergedModel.boards[0] = tmpBoardInfo2.data;
@@ -527,67 +537,112 @@ module.exports = function(RED) {
             tmpMsgModel = null;
             if(!node.dsfFirstMsg && node.nodeRun && !node.duetModeErr){
                 try{
-                let [tmpExtdInfo, tmpGlobalVar] = await Promise.all([
-                        axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
-                        axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
-                    ]).catch(function (error){
-                        //failedLogin("Error getting main msg data = " + error.toJSON(), "Duet");
-                        node.status({fill:"yellow",shape:"dot",text:"error"});
-                        node.duetModeErr = true;
-                        return false;
-                    });
+                    let [tmpExtdInfo, tmpGlobalVar] = await Promise.all([
+                            axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
+                            axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
+                        ]).catch(function (error){
+                            //failedLogin("Error getting main msg data = " + error.toJSON(), "Duet");
+                            //console.log("part model err:", error.toJSON())
+                            node.status({fill:"yellow",shape:"dot",text:"error"});
+                            node.duetModeErr = true;
+                            return false;
+                        });
                     const tmpExtdInfo2 = await tmpExtdInfo;
                     const tmpGlobalVar2 = await tmpGlobalVar;
                     mergedModel = tmpExtdInfo2.data['result'];
                     mergedModel.global = tmpGlobalVar2.data['result'];
                     //check to see if the message count has increased then get the last disaply message and incorporate into patchModel
                     if(mergedModel.hasOwnProperty('seqs')){
+                        //console.log("SEQ:", mergedModel.seqs)
+                        var bGetExMsg = false;
                         if(mergedModel.seqs.hasOwnProperty('reply')){
                             if(mergedModel.seqs.reply > node.dsfFullModel.seqs.reply){
-                                if(mergedModel.seqs.state > node.dsfFullModel.seqs.state){
-                                    //when the state also increases use the state req
-                                    let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetMsgReq}`, { headers: {'Content-Type': 'application/json'}})])
-                                        .catch(function (error){
-                                            //failedLogin("Error getting state data = " + error.toJSON(), "Duet");
-                                            node.duetModeErr = true;
-                                            return false;
-                                        });
-                                    const tmpDispMsg2 = await tmpDispMsg;
-                                    tmpMsgModel = tmpDispMsg2.data.result;
-                                    if(tmpMsgModel.hasOwnProperty('messageBox')) {
-                                        if(tmpMsgModel.messageBox != null) {
-                                            if(tmpMsgModel.messageBox.hasOwnProperty('message')) {
-                                                //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
-                                                if(!mergedModel.state.hasOwnProperty('messageBox')){
-                                                    mergedModel.state.messageBox = {message: null, title: null}
-                                                }
-                                                mergedModel.state.messageBox.message = tmpMsgModel.messageBox.message; 
-                                            } 
-                                            if(tmpMsgModel.messageBox.hasOwnProperty('title')) {
-                                                //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
-                                                if(!mergedModel.state.hasOwnProperty('messageBox')){
-                                                    mergedModel.state.messageBox = {message: null, title: null}
-                                                }
-                                                mergedModel.state.messageBox.title = tmpMsgModel.messageBox.title;
+                                //console.log("Using reply Req");
+                                bGetExMsg = true;                               
+                            }else {
+                                //remove previous msgs if they exist
+                                mergedModel.state.displayMessage = "";
+                                mergedModel.state.messageBox =  {message: null, title: null};
+                            }
+                        }else if(mergedModel.seqs.hasOwnProperty('job')){
+                            if(mergedModel.seqs.job > node.dsfFullModel.seqs.job){
+                                //console.log("Using reply Job");
+                                bGetExMsg = true;                                
+                            }else {
+                                //remove previous msgs if they exist
+                                mergedModel.state.displayMessage = "";
+                                mergedModel.state.messageBox =  {message: null, title: null};
+                            }
+                        }else if(mergedModel.seqs.hasOwnProperty('global')){
+                            if(mergedModel.seqs.global > node.dsfFullModel.seqs.global){
+                                //console.log("Using reply Global");
+                                bGetExMsg = true;                                
+                            }else {
+                                //remove previous msgs if they exist
+                                mergedModel.state.displayMessage = "";
+                                mergedModel.state.messageBox =  {message: null, title: null};
+                            }
+                        }else if(mergedModel.seqs.hasOwnProperty('volumes')){
+                            if(mergedModel.seqs.volumes > node.dsfFullModel.seqs.volumes){
+                                //console.log("Using reply Volumes");
+                                bGetExMsg = true;                                
+                            }else {
+                                //remove previous msgs if they exist
+                                mergedModel.state.displayMessage = "";
+                                mergedModel.state.messageBox =  {message: null, title: null};
+                            }
+                        }else if(mergedModel.seqs.hasOwnProperty('state')){
+                            if(mergedModel.seqs.state > node.dsfFullModel.seqs.state){
+                                //when the state also increases use the state req
+                                //console.log("Using Reply State");
+                                let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetMsgReq}`, { headers: {'Content-Type': 'application/json'}})])
+                                    .catch(function (error){
+                                        failedLogin("Error getting state data = " + error.toJSON(), "Duet");
+                                        node.duetModeErr = true;
+                                        return false;
+                                    });     
+                                const tmpDispMsg3 = await tmpDispMsg;
+                                tmpMsgModel = tmpDispMsg3.data.result;
+                                //tmpMsgModel = tmpDispMsg2;
+                                //console.log("statemsg = ", tmpMsgModel);
+                                if(tmpMsgModel.hasOwnProperty('messageBox')) {
+                                    if(tmpMsgModel.messageBox != null) {
+                                        if(tmpMsgModel.messageBox.hasOwnProperty('message')) {
+                                            //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
+                                            if(!mergedModel.state.hasOwnProperty('messageBox')){
+                                                mergedModel.state.messageBox = {message: null, title: null}
                                             }
+                                            mergedModel.state.messageBox.message = tmpMsgModel.messageBox.message; 
+                                        } 
+                                        if(tmpMsgModel.messageBox.hasOwnProperty('title')) {
+                                            //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
+                                            if(!mergedModel.state.hasOwnProperty('messageBox')){
+                                                mergedModel.state.messageBox = {message: null, title: null}
+                                            }
+                                            mergedModel.state.messageBox.title = tmpMsgModel.messageBox.title;
                                         }
                                     }
-                                }else{
-                                    let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}/rr_reply`, { headers: {'Content-Type': 'application/json'}})])
-                                        .catch(function (error){
-                                            //failedLogin("Error getting displayMsg data = " + error.toJSON(), "Duet");
-                                            node.duetModeErr = true;
-                                            return false;
-                                        });
-                                    const tmpDispMsg2 = await tmpDispMsg;
-                                    mergedModel.state.displayMessage = tmpDispMsg2.data.trim();
                                 }
                             }else {
                                 //remove previous msgs if they exist
                                 mergedModel.state.displayMessage = "";
                                 mergedModel.state.messageBox =  {message: null, title: null};
                             }
-                        }  
+                        }else {
+                            //remove previous msgs if they exist
+                            mergedModel.state.displayMessage = "";
+                            mergedModel.state.messageBox =  {message: null, title: null};
+                        }
+                        if(bGetExMsg){
+                            let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}/rr_reply`, { headers: {'Content-Type': 'application/json'}})])
+                                .catch(function (error){
+                                    //failedLogin("Error getting displayMsg data = " + error.toJSON(), "Duet");
+                                    node.duetModeErr = true;
+                                    return false;
+                                });
+                            const tmpDispMsg2 = await tmpDispMsg;
+                            mergedModel.state.displayMessage = tmpDispMsg2.data.trim(); 
+                        }
                     }else{
                         //remove previous msgs if they exist 
                         mergedModel.state.displayMessage = "";
@@ -611,8 +666,8 @@ module.exports = function(RED) {
                     node.send(msg);
                 }
                 catch(e){
-                    //console.warn("Error: " +e)
                     //failedLogin("Error getting data duetPartModel = " + e, "Duet");
+                    // console.log("part model err2:", e)
                     node.status({fill:"yellow",shape:"dot",text:"error"});
                     node.duetModeErr = true;
                     return false;
