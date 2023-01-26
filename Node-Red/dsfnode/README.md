@@ -16,6 +16,7 @@ Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on gi
 **Note:** Duet control boards have connection/session limitations, and dsfnode consumes at least one of the available sessions. Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for more information. When operating in Duet mode it is not recommended to have the DWC web interface open on the same computer running **dsfnode**/node-red. The **Duet** mode currently delivers a subset of the full Object Model to reduce load on the control boards. If there is data that is missing please raise an issue and I will see if it can be added.
   
 **Change Log**  
+V1.1.10 - Updated to NodeRed V3+. Fixed buggy Intercept Node, and messaging system. M118 and other console messages will now be found in state.consoleMessage. M117 message text will remain in state.displayMessage.
 V1.1.9 - Improved Msg Handling in Duet mode.  
 V1.1.8 - Added status indicators to monitor node.  
 V1.1.7 - Better recovery handling for emergency stop situations and power failures. Further changes to M118 & M291 handling, General Bug Fixes.  

@@ -180,16 +180,15 @@ module.exports = function(RED) {
         this.dsfFullModel = null;
         if(!this.password || this.password === "") {this.password = "reprap"};
         this.duetLogin = (`/rr_connect?password=${this.password}&time=`); //login info
-        this.duetS0Req = "/rr_status"; //regular update
-        this.duetS1Req = "/rr_status?type=1"; //regular update
-        this.duetS2Req = "/rr_status?type=2"; //extended info update
-        this.duetS3Req = "/rr_status?type=3"; //printing info update
         this.duetEMReq = "/rr_model"; //empty model
         this.duetFNReq = "/rr_model?flags=d99fn"; //quick info update
         this.duetBIReq = "/rr_config"; //board & firmware info
         this.duetGVReq = "/rr_model?key=global&flags=d99vn"; //global variables
-        this.duetMsgReq = "/rr_model?key=state&flags=d99vn"; //Check For Display Msgs (only needed in Duet Mode)
+        this.duetMsgReq = "/rr_reply"; //Check For Display Msgs (only needed in Duet Mode
+        this.duetStateReq = "/rr_model?key=state&flags=d99vn"; //Check For Display Msgs (only needed in Duet Mode
+        this.duetFileInfoReq = "/rr_model?key=job&flags=d99vn"; //get info on current print job file
         this.duetEmptyModel = "";
+        this.lastDispMsg = "";
         this.nodeRun = true;
         this.pollRate = this.server.bPollRate;
         this.duetModeErr = false;
@@ -218,7 +217,7 @@ module.exports = function(RED) {
             if(Number(node.pollRate) <= 199){node.pollRate = 500};
             if(Number(node.pollRate) >= 7001){node.pollRate = 7000};
         } else{
-            //not a number so set to default of 200ms
+            //not a number so set to default of 500ms
             node.pollRate = 500;
         };
 
@@ -475,25 +474,61 @@ module.exports = function(RED) {
                         return false;
                     }
                 } else{
-                    //Get the emty model, board info, quick info, global variables
-                    let [tmpEmptyModel, tmpBoardInfo, tmpExtdInfo, tmpGlobalVar] = await Promise.all([
-                        axios.get(`${node.duetUrl}${node.duetEMReq}`, { headers: {'Content-Type': 'application/json'}}),
-                        axios.get(`${node.duetUrl}${node.duetBIReq}`, { headers: {'Content-Type': 'application/json'}}),
-                        axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}}),
-                        axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
+                    //Get the emty model, board info, quick info, global variables data in stages to avoid overloading board
+                    let [tmpEmptyModel] = await Promise.all([
+                        axios.get(`${node.duetUrl}${node.duetEMReq}`, { headers: {'Content-Type': 'application/json'}})
                     ]).catch(function (error){
-                        //console.log("Error getting initial data = " + error);
+                        console.log("Error getting Empty Model = " + error);
                         node.status({fill:"yellow",shape:"dot",text:"error"});
                         node.duetModeErr = true;
                         return false;
                     }); 
                     const tmpEmptyModel2 = await tmpEmptyModel;
+
+                    let [tmpBoardInfo] = await Promise.all([
+                        axios.get(`${node.duetUrl}${node.duetBIReq}`, { headers: {'Content-Type': 'application/json'}})
+                    ]).catch(function (error){
+                        console.log("Error getting Board Info = " + error);
+                        node.status({fill:"yellow",shape:"dot",text:"error"});
+                        node.duetModeErr = true;
+                        return false;
+                    });
                     const tmpBoardInfo2 = await tmpBoardInfo;
-                    const tmpGlobalVar2 = await tmpGlobalVar;
+
+                    let [tmpExtdInfo] = await Promise.all([
+                        axios.get(`${node.duetUrl}${node.duetFNReq}`, { headers: {'Content-Type': 'application/json'}})
+                    ]).catch(function (error){
+                        console.log("Error getting Info Update = " + error);
+                        node.status({fill:"yellow",shape:"dot",text:"error"});
+                        node.duetModeErr = true;
+                        return false;
+                    });
                     const tmpExtdInfo2 = await tmpExtdInfo;
+                    
+                    let [tmpGlobalVar] = await Promise.all([
+                        axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
+                    ]).catch(function (error){
+                        console.log("Error getting Global Var Info = " + error);
+                        node.status({fill:"yellow",shape:"dot",text:"error"});
+                        node.duetModeErr = true;
+                        return false;
+                    });
+                    const tmpGlobalVar2 = await tmpGlobalVar;
+
+                    let [tmpStateInfo] = await Promise.all([
+                        axios.get(`${node.duetUrl}${node.duetStateReq}`, { headers: {'Content-Type': 'application/json'}})
+                    ]).catch(function (error){
+                        console.log("Error getting State Info = " + error);
+                        node.status({fill:"yellow",shape:"dot",text:"error"});
+                        node.duetModeErr = true;
+                        return false;
+                    });
+                    const tmpStateInfo2 = await tmpStateInfo;
+
                     mergedModel = tmpEmptyModel2.data['result'];
                     
                     //add null keys for intercept node as not returned as part of model
+                    mergedModel.state = tmpStateInfo2.data['result'];
                     mergedModel.state['messageBox'] = {};
                     mergedModel.state.messageBox['title'] = null;
                     mergedModel.state.messageBox['message'] = null;
@@ -507,6 +542,20 @@ module.exports = function(RED) {
                     mergedModel.boards[0] = tmpBoardInfo2.data;
                     mergedModel.global = tmpGlobalVar2.data['result'];
                     mergedModel = merge(mergedModel, tmpExtdInfo2.data['result'], { arrayMerge : combineMerge });
+
+                    //now get file info - do this here to avoid to many parralell requests
+                    let [tmpFileInfo] = await Promise.all([
+                        axios.get(`${node.duetUrl}${node.duetFileInfoReq}`, { headers: {'Content-Type': 'application/json'}})                        
+                    ]).catch(function (error){
+                        console.log("Error getting file info data = " + error);
+                        node.status({fill:"yellow",shape:"dot",text:"error"});
+                        node.duetModeErr = true;
+                        return false;
+                    }); 
+                    const tmpFileInfo2 = await tmpFileInfo;
+                    mergedModel.job = tmpFileInfo2.data['result'];
+
+                    //populate the full model
                     node.dsfFullModel = mergedModel;
                     msg = {
                         topic:"dsfModel", 
@@ -523,7 +572,7 @@ module.exports = function(RED) {
                     return true;
                 }
             }catch(e){                
-                //console.log("Error connecting/getting data duetModel = " + e.message);
+                console.log("Error connecting/getting data duetModel = " + e.message);
                 node.status({fill:"yellow",shape:"dot",text:"error"});
                 node.duetModeErr = true;
                 return false;
@@ -535,6 +584,7 @@ module.exports = function(RED) {
             msg = null;
             patchModel = null;
             tmpMsgModel = null;
+            tmpFileMod = {};
             if(!node.dsfFirstMsg && node.nodeRun && !node.duetModeErr){
                 try{
                     let [tmpExtdInfo, tmpGlobalVar] = await Promise.all([
@@ -542,7 +592,7 @@ module.exports = function(RED) {
                             axios.get(`${node.duetUrl}${node.duetGVReq}`, { headers: {'Content-Type': 'application/json'}})
                         ]).catch(function (error){
                             //failedLogin("Error getting main msg data = " + error.toJSON(), "Duet");
-                            //console.log("part model err:", error.toJSON())
+                            console.log("part model err:", error.toJSON())
                             node.status({fill:"yellow",shape:"dot",text:"error"});
                             node.duetModeErr = true;
                             return false;
@@ -551,106 +601,98 @@ module.exports = function(RED) {
                     const tmpGlobalVar2 = await tmpGlobalVar;
                     mergedModel = tmpExtdInfo2.data['result'];
                     mergedModel.global = tmpGlobalVar2.data['result'];
-                    //check to see if the message count has increased then get the last disaply message and incorporate into patchModel
+                    //check to see if the message or Job count has increased
                     if(mergedModel.hasOwnProperty('seqs')){
                         //console.log("SEQ:", mergedModel.seqs)
                         var bGetExMsg = false;
+                        var bGetJobInfo = false;
+                        var bGetSateInfo = false;
+                        var tmpMsgStr = "";
                         if(mergedModel.seqs.hasOwnProperty('reply')){
                             if(mergedModel.seqs.reply > node.dsfFullModel.seqs.reply){
                                 //console.log("Using reply Req");
                                 bGetExMsg = true;                               
-                            }else {
-                                //remove previous msgs if they exist
-                                mergedModel.state.displayMessage = "";
-                                mergedModel.state.messageBox =  {message: null, title: null};
                             }
-                        }else if(mergedModel.seqs.hasOwnProperty('job')){
+                        }
+                        if(mergedModel.seqs.hasOwnProperty('job')){
                             if(mergedModel.seqs.job > node.dsfFullModel.seqs.job){
                                 //console.log("Using reply Job");
-                                bGetExMsg = true;                                
-                            }else {
-                                //remove previous msgs if they exist
-                                mergedModel.state.displayMessage = "";
-                                mergedModel.state.messageBox =  {message: null, title: null};
+                                bGetJobInfo = true;                                
                             }
-                        }else if(mergedModel.seqs.hasOwnProperty('global')){
-                            if(mergedModel.seqs.global > node.dsfFullModel.seqs.global){
-                                //console.log("Using reply Global");
-                                bGetExMsg = true;                                
-                            }else {
-                                //remove previous msgs if they exist
-                                mergedModel.state.displayMessage = "";
-                                mergedModel.state.messageBox =  {message: null, title: null};
-                            }
-                        }else if(mergedModel.seqs.hasOwnProperty('volumes')){
-                            if(mergedModel.seqs.volumes > node.dsfFullModel.seqs.volumes){
-                                //console.log("Using reply Volumes");
-                                bGetExMsg = true;                                
-                            }else {
-                                //remove previous msgs if they exist
-                                mergedModel.state.displayMessage = "";
-                                mergedModel.state.messageBox =  {message: null, title: null};
-                            }
-                        }else if(mergedModel.seqs.hasOwnProperty('state')){
+                        }
+                        if(mergedModel.seqs.hasOwnProperty('state')){
                             if(mergedModel.seqs.state > node.dsfFullModel.seqs.state){
                                 //when the state also increases use the state req
                                 //console.log("Using Reply State");
-                                let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetMsgReq}`, { headers: {'Content-Type': 'application/json'}})])
-                                    .catch(function (error){
-                                        failedLogin("Error getting state data = " + error.toJSON(), "Duet");
-                                        node.duetModeErr = true;
-                                        return false;
-                                    });     
-                                const tmpDispMsg3 = await tmpDispMsg;
-                                tmpMsgModel = tmpDispMsg3.data.result;
-                                //tmpMsgModel = tmpDispMsg2;
-                                //console.log("statemsg = ", tmpMsgModel);
-                                if(tmpMsgModel.hasOwnProperty('messageBox')) {
-                                    if(tmpMsgModel.messageBox != null) {
-                                        if(tmpMsgModel.messageBox.hasOwnProperty('message')) {
-                                            //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
-                                            if(!mergedModel.state.hasOwnProperty('messageBox')){
-                                                mergedModel.state.messageBox = {message: null, title: null}
-                                            }
-                                            mergedModel.state.messageBox.message = tmpMsgModel.messageBox.message; 
-                                        } 
-                                        if(tmpMsgModel.messageBox.hasOwnProperty('title')) {
-                                            //the timeout property has gone so assume msg has been cleared. Therefore clear current fullModel values
-                                            if(!mergedModel.state.hasOwnProperty('messageBox')){
-                                                mergedModel.state.messageBox = {message: null, title: null}
-                                            }
-                                            mergedModel.state.messageBox.title = tmpMsgModel.messageBox.title;
-                                        }
-                                    }
-                                }
-                            }else {
-                                //remove previous msgs if they exist
-                                mergedModel.state.displayMessage = "";
-                                mergedModel.state.messageBox =  {message: null, title: null};
+                                bGetSateInfo = true; 
                             }
-                        }else {
-                            //remove previous msgs if they exist
-                            mergedModel.state.displayMessage = "";
-                            mergedModel.state.messageBox =  {message: null, title: null};
                         }
                         if(bGetExMsg){
-                            let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}/rr_reply`, { headers: {'Content-Type': 'application/json'}})])
+                            //console.log("Getting Msg Text")
+                            let [tmpDispMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetMsgReq}`, { headers: {'Content-Type': 'application/json'}})])
                                 .catch(function (error){
                                     //failedLogin("Error getting displayMsg data = " + error.toJSON(), "Duet");
+                                    console.log("Failed to retrieve msg text: ", error)
                                     node.duetModeErr = true;
                                     return false;
                                 });
                             const tmpDispMsg2 = await tmpDispMsg;
-                            mergedModel.state.displayMessage = tmpDispMsg2.data.trim(); 
+                            tmpMsgStr = tmpDispMsg2.data.trim();
+                            mergedModel['state']['consoleMessage'] = tmpMsgStr
                         }
-                    }else{
-                        //remove previous msgs if they exist 
-                        mergedModel.state.displayMessage = "";
-                        mergedModel.state.messageBox =  {message: null, title: null};
+                        if(bGetJobInfo){
+                            let [tmpFileInfo] = await Promise.all([
+                                axios.get(`${node.duetUrl}${node.duetFileInfoReq}`, { headers: {'Content-Type': 'application/json'}})                        
+                            ]).catch(function (error){
+                                console.log("Error getting file data = ", error);
+                                node.status({fill:"yellow",shape:"dot",text:"error"});
+                                node.duetModeErr = true;
+                                return false;
+                            }); 
+                            const tmpFileInfo3 = await tmpFileInfo;
+                            tmpFileMod = tmpFileInfo3.data['result'];
+                            mergedModel.job = tmpFileMod;
+                        }
+                        //get state info last
+                        if(bGetSateInfo){
+                            let [tmpStateMsg] = await Promise.all([axios.get(`${node.duetUrl}${node.duetStateReq}`, { headers: {'Content-Type': 'application/json'}})
+                            ]).catch(function (error){
+                                //failedLogin("Error getting state data = " + error.toJSON(), "Duet");
+                                console.log("Failed to retrieve state data update: ", error)
+                                node.duetModeErr = true;
+                                return false;
+                            });     
+                            const tmpStateMsg2 = await tmpStateMsg;
+                            mergedModel.state = tmpStateMsg2.data['result'];
+                            //check if last disp msg is the same as the last msg and we have a msg box then remove old msg
+                            if(mergedModel.state.hasOwnProperty('dispalyMessage')){
+                                if(mergedModel.state.hasOwnProperty('messageBox') && node.lastDispMsg === mergedModel.state.displayMessage){
+                                    mergedModel.state.displayMessage = "";
+                                }
+                                node.lastDispMsg = mergedModel.state.displayMessage;
+                            }else{
+
+                            }
+                        }
+                        //update msg string last
+                        if(tmpMsgStr.length > 0 && mergedModel.hasOwnProperty('state')){
+                            mergedModel['state']['consoleMessage'] = tmpMsgStr;
+                        }
                     }
+
+                    //remove previous msgs from full model if they have not changed
+                    if(node.dsfFullModel.hasOwnProperty('state')){
+                        node.dsfFullModel["state"]["consoleMessage"] = "";
+                    }
+ 
                     patchModel = diff(node.dsfFullModel, mergedModel);
                     patchModel = cleanDeep(patchModel);
                     mergedModel = merge(node.dsfFullModel, mergedModel, { arrayMerge : combineMerge });
+                    
+                    //override job data if count increased this is to ensure finished jobs are cleared
+                    if(bGetJobInfo){
+                        mergedModel.job = tmpFileMod;
+                    }
                     msg = {
                         topic:"dsfModel", 
                         payload: {
@@ -667,7 +709,7 @@ module.exports = function(RED) {
                 }
                 catch(e){
                     //failedLogin("Error getting data duetPartModel = " + e, "Duet");
-                    // console.log("part model err2:", e)
+                    console.log("part model err2:", e)
                     node.status({fill:"yellow",shape:"dot",text:"error"});
                     node.duetModeErr = true;
                     return false;
