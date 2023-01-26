@@ -1,1 +1,1 @@
-These examples are provided by the author to help you to understand how to use NodeDSF with Node-Red
+These examples are provided by the author to help you to understand how to use NodeDSF with Node-Red. They are not maintained or updated with each release, so some examples may require re-configuring before they will work.
