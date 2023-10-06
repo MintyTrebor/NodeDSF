@@ -111,10 +111,10 @@
 </script>
 
 <script type="text/html" data-help-name="dsf-connector">
-    <p>Connection details for the SBC running Duet Software Framework</p>
+    <p>Connection details for the SBC/Board running DSF/RRF v3.5+</p>
     
     <h3>Details</h3>
-        <p>Enter the IP address of the Duet Board or SBC running DSF.</p>
+        <p>Enter the IP address of the SBC/Board running DSF/RRF.</p>
         <p> Choose the type of connection: either <code>Duet</code> or <code>DSF</code></p>
         <p> For <code>Duet</code> mode you may also specify the polling rate in ms (default 200 = 5 times per second)</p>
         <p> <code>Password</code> is required if you have set the password using the M551 (Note: this is not secured as it is sent in the clear as per Duet design)</p><br>
@@ -145,7 +145,7 @@
 </script>
 
 <script type="text/html" data-help-name="dsf-monitor">
-    <p>Connects to an SBC running Duet Software Framework</p>
+    <p>Connects to an SBC/Board running DSF/RRF v3.5+</p>
     
     <h3>Inputs</h3>
     <dl class="message-properties">
@@ -187,11 +187,11 @@
          </ol>
     
     <h3>Details</h3>
-        <p>This is the main dsfnode node, providing the connection to a Duet Board or Duet Software Framework running on an SBC.</p><br>
-        <p>Specify the ip address of the Duet Board or SBC server running DSF in <code>Duet/DSF IP</code> 
+        <p>This is the main dsfnode node, providing the connection to a SBC/Board running DSF/RRF v3.5+.</p><br>
+        <p>Specify the ip address of the SBC/Board running DSF/RRF in <code>Duet/DSF IP</code> 
             (or use localhost if node-red is installed on the same SBC as DSF).</p><br>
         <p>Only 1 Monitor node should be deployed per Duet Board/DSF server, to avoid creating too many sessions (they are limited!!).
-            A single monitor node can provide DSF updates to any other flows using the 
+            A single monitor node can provide updates to any other flows using the 
             'Link In' & 'Link Out' standard nodes.</p>
     
     <h3>References</h3>

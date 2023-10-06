@@ -182,7 +182,8 @@ module.exports = function(RED) {
         this.duetLogin = (`/rr_connect?password=${this.password}&time=`); //login info
         this.duetEMReq = "/rr_model"; //empty model
         this.duetFNReq = "/rr_model?flags=d99fn"; //quick info update
-        this.duetBIReq = "/rr_config"; //board & firmware info
+        //this.duetBIReq = "/rr_config"; //board & firmware info *** depreciated in fw 3.5+ ****
+        this.duetBIReq = "/rr_model?key=boards[0]"; //board & firmware info
         this.duetGVReq = "/rr_model?key=global&flags=d99vn"; //global variables
         this.duetMsgReq = "/rr_reply"; //Check For Display Msgs (only needed in Duet Mode
         this.duetStateReq = "/rr_model?key=state&flags=d99vn"; //Check For Display Msgs (only needed in Duet Mode
@@ -539,7 +540,8 @@ module.exports = function(RED) {
                     mergedModel['seqs']['volumes'] = 0;
                     mergedModel['state']['displayMessage'] = null;
                     node.duetEmptyModel = tmpEmptyModel2.data['result'];
-                    mergedModel.boards[0] = tmpBoardInfo2.data;
+                    //mergedModel.boards[0] = tmpBoardInfo2.data; changed due to changes in fw 3.5+
+                    mergedModel.boards[0] = tmpBoardInfo2.data['result'];
                     mergedModel.global = tmpGlobalVar2.data['result'];
                     mergedModel = merge(mergedModel, tmpExtdInfo2.data['result'], { arrayMerge : combineMerge });
 

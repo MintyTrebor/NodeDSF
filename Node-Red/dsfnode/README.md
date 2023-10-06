@@ -1,5 +1,5 @@
 # dsfnode
-**dsfnode** is a set of nodes which enable Node-Red to interface with the [Duet Software Framework](https://github.com/Duet3D/DuetSoftwareFramework) (v3+) running on an SBC, or a network enabled Duet v2/3 (or compatible) control board running v3.3+ RepRap firmware.  
+**dsfnode** is a set of nodes which enable Node-Red to interface with the [Duet Software Framework](https://github.com/Duet3D/DuetSoftwareFramework) (v3.5+) running on an SBC, or a network enabled Duet v2/3 (or compatible) control board running v3.5+ RepRap firmware.  
 
 The RepRap firmware labels anything operated by itself a 'Machine', and constructs a [Object Model](https://duet3d.dozuki.com/Wiki/Object_Model_of_RepRapFirmware) representing the current state of the entire Machine and its associated components. A network enabled Duet control board, or DSF running on an SBC, can output the Object Model to a client via a web-socket or rest api. **dsfnode** enables the connection and provides a set of nodes to use the Object Model in Node-Red. The Object Model is a JSON object representing the current state of the Machine which is constantly updated by DSF and passed to the connected web-socket client.  
  
@@ -16,6 +16,7 @@ Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on gi
 **Note:** Duet control boards have connection/session limitations, and dsfnode consumes at least one of the available sessions. Please refer to the [NodeDSF wiki](https://github.com/MintyTrebor/NodeDSF) on github for more information. When operating in Duet mode it is not recommended to have the DWC web interface open on the same computer running **dsfnode**/node-red. The **Duet** mode currently delivers a subset of the full Object Model to reduce load on the control boards. If there is data that is missing please raise an issue and I will see if it can be added.
   
 **Change Log**  
+V1.1.11 - Updated for RepRap Firmware version 3.5+ compatability. Note this version is only tested on fw v3.5+.
 V1.1.10 - Updated to NodeRed V3+. Fixed buggy Intercept Node, and messaging system. M118 and other console messages will now be found in state.consoleMessage. M117 message text will remain in state.displayMessage.
 V1.1.9 - Improved Msg Handling in Duet mode.  
 V1.1.8 - Added status indicators to monitor node.  
