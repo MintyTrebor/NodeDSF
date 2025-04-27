@@ -695,6 +695,10 @@ module.exports = function(RED) {
                     if(bGetJobInfo){
                         mergedModel.job = tmpFileMod;
                     }
+                    //override global merge as is causes problems with arrays
+                    mergedModel.global = tmpGlobalVar2.data['result'];
+                    patchModel.global = tmpGlobalVar2.data['result'];
+
                     msg = {
                         topic:"dsfModel", 
                         payload: {
